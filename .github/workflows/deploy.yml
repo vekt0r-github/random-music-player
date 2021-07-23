@@ -12,7 +12,7 @@ jobs:
       -
         name: Deploy to GitHub Pages
         if: success()
-        uses: vekt0r-github/randomMusicPlayer@v2
+        uses: vekt0r-github/randomMusicPlayer
         with:
           target_branch: gh-pages
           build_dir: public
