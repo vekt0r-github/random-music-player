@@ -54,3 +54,6 @@ const start = () => {
   startButton.removeEventListener('click', start);
 };
 startButton.addEventListener('click', start);
+
+document.getElementById("test").addEventListener('click', () => alert("the test button was clicked"));
+alert("hello user");
