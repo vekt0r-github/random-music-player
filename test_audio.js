@@ -47,8 +47,10 @@ function initPlayer(pool) {
   setupInput("rowsAfter", 10, (x) => player.rowsAfter = x);
 }
 
+const startButton = document.getElementById("start")
+
 const start = () => {
   loadData('songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
-  document.body.removeEventListener('click', start);
+  startButton.removeEventListener('click', start);
 };
-document.body.addEventListener('click', start);
+startButton.addEventListener('click', start);
