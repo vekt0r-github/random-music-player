@@ -54,9 +54,10 @@ function initPlayer(pool) {
 }
 
 const start = () => {
-  initPlayer([
-    { path: 'https://songsfolder.s-ul.eu/DfO4GAqQ', displayName: 'thoughtcrime', id: 0 },
-  ]);
+  // initPlayer([
+  //   { path: 'https://songsfolder.s-ul.eu/DfO4GAqQ', displayName: 'thoughtcrime', id: 0 },
+  // ]);
+  loadData('songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
   // loadData("get_songs.php", (pool_json) => initPlayer(JSON.parse(pool_json)));
   document.body.removeEventListener('click', start);
 };
