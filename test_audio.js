@@ -16,9 +16,8 @@ function loadData(fn, callback) {
   oReq.send();
 }
 
-function initPlayer(pool_json) {
+function initPlayer(pool) {
   // console.log(pool_json);
-  const pool = JSON.parse(pool_json);
   const box = document.getElementById("hellosu");
   const audio = document.getElementById("player");
   const table = document.getElementById("playlist");
@@ -45,7 +44,7 @@ function initPlayer(pool_json) {
   player.reset();
   player.volume = 0.25;
   player.autoplay = true;
-  player.noRepeatNum = 2;
+  player.noRepeatNum = 0;
   player.rowsBefore = 2;
   player.rowsAfter = 10;
   player.playCurr();
@@ -55,7 +54,10 @@ function initPlayer(pool_json) {
 }
 
 const start = () => {
-  loadData("get_songs.php", initPlayer);
+  initPlayer([
+    { path: 'https://songsfolder.s-ul.eu/DfO4GAqQ', displayName: 'thoughtcrime', id: 0 },
+  ]);
+  // loadData("get_songs.php", (pool_json) => initPlayer(JSON.parse(pool_json)));
   document.body.removeEventListener('click', start);
 };
 document.body.addEventListener('click', start);

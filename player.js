@@ -5,7 +5,7 @@ export class Player {
    * Turns audioElement into an audio player which plays
    * random songs from pool
    * @param {HTML element} audioElement 
-   * @param {list} pool-- each song is {path, displayName}
+   * @param {list} pool-- each song is {path, displayName, id}
    * @param {int} bufferSize 
    */
   constructor(audioElement, pool) {
