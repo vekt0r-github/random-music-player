@@ -10,18 +10,18 @@
   <body>
     <h1>random music player</h1>
     <div>
-      <button id="start">start</button>
-      <button id="refresh">refresh</button>
-      <button id="test">mobile testing button</button>
+      <button type="button" id="start">start</button>
+      <button type="button" id="refresh">refresh</button>
+      <button type="button" id="test">mobile testing button</button>
     </div>
     <div>
-      <button id="prev">&lt;</button>
-      <button id="next">&gt;</button>
+      <button type="button" id="prev">&lt;</button>
+      <button type="button" id="next">&gt;</button>
     </div>
     <div>
-      <p>no repeat: <input id="noRepeatNum"></p>
-      <p>rows before: <input id="rowsBefore"></p>
-      <p>rows after: <input id="rowsAfter"></p>
+      <label for="noRepeatNum">no repeat: </label><input type="text" id="noRepeatNum"><br>
+      <label for="rowsBefore">rows before: </label><input type="text" id="rowsBefore"><br>
+      <label for="rowsAfter">rows after: </label><input type="text" id="rowsAfter">
     </div>
     <div>
       <audio id="player" controls>
