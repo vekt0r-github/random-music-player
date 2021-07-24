@@ -9,34 +9,51 @@ export class PlayerDisplay extends Player {
     this._rowsAfter = 0;
   }
 
-  /**
-   * creates an HTML table showing recent/coming up songs
-   */
-  #makePlaylist() {
-    // console.log(this.playlist);
-    var output = '<table class="playlist">';
-    const fromSong = this.currSong - this._rowsBefore;
-    const toSong = this.currSong + this._rowsAfter;
-    for (var i = fromSong; i <= toSong; i++) {
-      var title = ' ';
-      if (i >= 0 && i < this.playlist.length) {
-        title = this.playlist[i].displayName;
-      }
-      const rowClass = i == this.currSong ? ' class="selected"' : '';
-      output += `<tr${rowClass}><td>${title}</td></tr>`;
-    }
-    output += '</table>';
-    return output;
-  };
+  buffer() {
+    super.buffer();
+    this.refreshPlaylist();
+  }
 
   playCurr() {
     super.playCurr();
     this.refreshPlaylist();
   }
   
+  /**
+   * creates an HTML table showing recent/coming up songs
+   */
   refreshPlaylist() {
-    // console.log('hi');
-    this.displayElement.innerHTML = this.#makePlaylist();
+    var table = document.createElement('table');
+    table.classList.add("playlist");
+    const fromSong = this.currSong - this._rowsBefore;
+    const toSong = this.currSong + this._rowsAfter;
+    for (var i = fromSong; i <= toSong; i++) {
+      var row = document.createElement('tr');
+      var cell = document.createElement('td');
+      var title = '';
+      if (i >= 0 && i < this.playlist.length) {
+        title = this.playlist[i].displayName;
+        const diff = i - this.currSong;
+        if (diff === 0) {
+          row.classList.add("selected");
+        } else if (diff < 0) {
+          // console.log(i + ' is less than ' + this.currSong);
+          cell.onclick = () => this.playPrev.bind(this)(-diff);
+        } else {
+          // console.log(i + ' is more than ' + this.currSong);
+          cell.onclick = () => this.playNext.bind(this)(diff);
+        }
+      }
+      cell.innerHTML = title;
+      row.appendChild(cell);
+      table.appendChild(row);
+    }
+    const oldChild = this.displayElement.firstChild;
+    if (oldChild === null) {
+      this.displayElement.appendChild(table);
+    } else {
+      this.displayElement.replaceChild(table, oldChild);
+    }
   }
 
   get rowsBefore() { return this._rowsBefore; }
@@ -55,8 +72,6 @@ export class PlayerDisplay extends Player {
   }
 
   reset() {
-    // console.log(this);
-    // console.log(super.reset);
     super.reset();
     this.refreshPlaylist();
   }

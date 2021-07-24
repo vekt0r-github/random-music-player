@@ -8,11 +8,18 @@
     <link rel="stylesheet" href="index.css">
   </head>
   <body>
-    <p id="hellosu">hellosu</p>
-    <p>i will write different text here every time</p>
+    <h1>random music player</h1>
+    <div>
+      <button id="refresh">refresh</button>
+    </div>
     <div>
       <button id="prev">&lt;</button>
       <button id="next">&gt;</button>
+    </div>
+    <div>
+      <p>no repeat: <input id="noRepeatNum"></p>
+      <p>rows before: <input id="rowsBefore"></p>
+      <p>rows after: <input id="rowsAfter"></p>
     </div>
     <div>
       <audio id="player" controls>

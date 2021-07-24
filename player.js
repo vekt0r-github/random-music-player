@@ -57,7 +57,6 @@ export class Player {
   }
 
   playCurr() {
-    // console.log(this);
     const song = this.playlist[this.currSong];
     this.audioElement.src = song.path;
     this.audioElement.play();
