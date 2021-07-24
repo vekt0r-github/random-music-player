@@ -34,7 +34,6 @@
     <div id="playlist"></div>
     <script>
       alert("hello user at the beginning");
-      document.getElementById("noRepeatNum").value = 123;
 
       // utils.js
       const random = (min, max) => Math.floor(Math.random() * (max - min)) + min;
@@ -146,9 +145,142 @@
         }
       };
 
-      
-      alert("i wonder if i can do player");
-      document.getElementById("noRepeatNum").value = 333;
+      // playerDisplay.js
+      class PlayerDisplay extends Player {
+        constructor(audioElement, displayElement, pool) {
+          super(audioElement, pool);
+          this.displayElement = displayElement;
+          // default values
+          this._rowsBefore = 0; // number of entries to display before current song
+          this._rowsAfter = 0;
+        }
+
+        buffer() {
+          super.buffer();
+          this.refreshPlaylist();
+        }
+
+        playCurr() {
+          super.playCurr();
+          this.refreshPlaylist();
+        }
+        
+        /**
+         * creates an HTML table showing recent/coming up songs
+         */
+        refreshPlaylist() {
+          var table = document.createElement('table');
+          table.classList.add("playlist");
+          const fromSong = this.currSong - this._rowsBefore;
+          const toSong = this.currSong + this._rowsAfter;
+          for (var i = fromSong; i <= toSong; i++) {
+            var row = document.createElement('tr');
+            var cell = document.createElement('td');
+            var title = '';
+            if (i >= 0 && i < this.playlist.length) {
+              title = this.playlist[i].displayName;
+              const diff = i - this.currSong;
+              if (diff === 0) {
+                row.classList.add("selected");
+              } else if (diff < 0) {
+                // console.log(i + ' is less than ' + this.currSong);
+                cell.onclick = () => this.playPrev.bind(this)(-diff);
+              } else {
+                // console.log(i + ' is more than ' + this.currSong);
+                cell.onclick = () => this.playNext.bind(this)(diff);
+              }
+            }
+            cell.innerHTML = title;
+            row.appendChild(cell);
+            table.appendChild(row);
+          }
+          const oldChild = this.displayElement.firstChild;
+          if (oldChild === null) {
+            this.displayElement.appendChild(table);
+          } else {
+            this.displayElement.replaceChild(table, oldChild);
+          }
+        }
+
+        get rowsBefore() { return this._rowsBefore; }
+
+        set rowsBefore(value) {
+          this._rowsBefore = value;
+          this.refreshPlaylist();
+        }
+
+        get rowsAfter() { return this._rowsAfter; }
+
+        set rowsAfter(value) {
+          this._rowsAfter = value;
+          this.bufferSize = value;
+          this.refreshPlaylist();
+        }
+
+        reset() {
+          super.reset();
+          this.refreshPlaylist();
+        }
+      }
+
+      // testAudio.js
+      const audioPath = 'test/';
+
+      function loadData(fn, callback) {
+        var oReq = new XMLHttpRequest(); // New request object
+        oReq.onload = function() {
+          // This is where you handle what to do with the response.
+          // The actual data is found on this.responseText
+          callback(this.responseText); 
+        };
+        oReq.open("get", fn, true);
+        //                   ^ Don't block the rest of the execution.
+        //                     Don't wait until the request finishes to
+        //                     continue.
+        oReq.send();
+      }
+
+      function executeIfInt(value, callback) {
+        if (Number.isInteger(+value)) {
+          callback(+value);
+        }
+      }
+
+      function initPlayer(pool) {
+        // console.log(pool_json);
+        const box = document.getElementById("hellosu");
+        const audio = document.getElementById("player");
+        const table = document.getElementById("playlist");
+
+        const player = new PlayerDisplay(audio, table, pool);
+        player.reset();
+        player.volume = 0.25;
+        player.autoplay = true;
+        player.playCurr();
+        document.getElementById("refresh").onclick = () => player.refreshPlaylist.bind(player)();
+        document.getElementById("prev").onclick = () => player.playPrev.bind(player)();
+        document.getElementById("next").onclick = () => player.playNext.bind(player)();
+        const setupInput = (elementId, defaultValue, callback) => {
+          const element = document.getElementById(elementId);
+          element.value = defaultValue;
+          callback(defaultValue);
+          element.onchange = () => executeIfInt(element.value, callback);
+        }
+        setupInput("noRepeatNum", 10, (x) => player.noRepeatNum = x);
+        setupInput("rowsBefore", 10, (x) => player.rowsBefore = x);
+        setupInput("rowsAfter", 10, (x) => player.rowsAfter = x);
+      }
+
+      const startButton = document.getElementById("start")
+
+      const start = () => {
+        loadData('songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
+        startButton.removeEventListener('click', start);
+      };
+      startButton.addEventListener('click', start);
+
+      document.getElementById("test").addEventListener('click', () => alert("the test button was clicked"));
+      alert("hello user");
 
     </script>
     <noscript>Sorry, your browser does not support JavaScript!</noscript>
