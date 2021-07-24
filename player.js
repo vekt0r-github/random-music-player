@@ -19,7 +19,7 @@ export class Player {
     this._noRepeatNum = 0;
   }
 
-  #bufferOne() {
+  bufferOne() {
     console.assert(this._noRepeatNum < this.poolSize);
     const newIndex = randomChoice([...this.availableIndices]);
     if (this._noRepeatNum > 0) {
@@ -39,7 +39,7 @@ export class Player {
    */
   buffer() {
     while (this.playlist.length - this.currSong - 1 < this.bufferSize) {
-      this.#bufferOne();
+      this.bufferOne();
     }
   }
 
