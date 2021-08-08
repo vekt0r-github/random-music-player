@@ -4,13 +4,14 @@ export class Player {
   /**
    * Turns audioElement into an audio player which plays
    * random songs from pool
-   * @param {HTML element} audioElement 
-   * @param {list} pool-- each song is {path, displayName, id}
-   * @param {int} bufferSize 
+   * @param {Element} audioElement 
+   * @param {Array} pool-- each song is {path, displayName, id (optional)}
+   * @param {Number} bufferSize 
    */
   constructor(audioElement, pool) {
     this.audioElement = audioElement;
-    this.pool = pool;
+    this.pool = [...pool];
+    this.pool.forEach((song, index) => { song.index = index; });
     this.poolSize = pool.length;
     // default values
     this._bufferSize = 0;
@@ -21,14 +22,15 @@ export class Player {
 
   bufferOne() {
     console.assert(this._noRepeatNum < this.poolSize);
+    console.assert(this.availableIndices.size >= this.poolSize - this._noRepeatNum);
     const newIndex = randomChoice([...this.availableIndices]);
     if (this._noRepeatNum > 0) {
+      this.availableIndices.delete(newIndex);
       const addBackIndex = this.playlist.length - this._noRepeatNum;
       if (addBackIndex >= 0) {
-        const oldIndex = this.playlist[addBackIndex].id;
+        const oldIndex = this.playlist[addBackIndex].index;
         this.availableIndices.add(oldIndex);
       }
-      this.availableIndices.delete(newIndex);
     }
     this.playlist.push(this.pool[newIndex]);
     // console.log(this);
@@ -48,6 +50,9 @@ export class Player {
    */
   rebuffer() {
     this.playlist = this.playlist.slice(0, this.currSong + 1);
+    const recentCutoff = Math.max(this.currSong - this._noRepeatNum + 1, 0)
+    const recent = this.playlist.slice(recentCutoff, this.currSong + 1).map(song => song.index);
+    this.availableIndices = new Set([...this.pool.keys()].filter(x => !recent.includes(x)));
     this.buffer();
   }
 

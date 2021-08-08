@@ -51,13 +51,12 @@ const onStartClick = () => {
   } else if (setting === "folder") {
     const files = fileSelect.files;
     var pool = [];
-    [...files].forEach((file, index) => {
+    [...files].forEach((file) => {
       const {name, ext} = splitFilename(file.name);
       if (!["mp3", "wav", "flac"].includes(ext)) return;
       const url = URL.createObjectURL(file);
       activeURLs.push(url);
       pool.push({
-        id: index,
         path: url,
         displayName: name,
       });
