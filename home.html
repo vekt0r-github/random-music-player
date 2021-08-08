@@ -12,6 +12,15 @@
   <body>
     <h1>random music player</h1>
     <div>
+      <select id="setting">
+        <option value="default" selected>default songs</option>
+        <option value="folder">folder select</option>
+      </select>
+    </div>
+    <div>
+      <input type="file" accept="image/*" webkitdirectory id="fileselect" hidden/>
+    </div>
+    <div>
       <button type="button" id="start">start</button>
       <button type="button" id="refresh">refresh</button>
     </div>

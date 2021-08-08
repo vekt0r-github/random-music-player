@@ -1,4 +1,5 @@
 import { PlayerDisplay } from "./playerDisplay.js";
+import { splitFilename } from "./utils.js";
 
 const audioPath = 'test/';
 
@@ -24,7 +25,6 @@ function executeIfInt(value, callback) {
 
 function initPlayer(pool) {
   // console.log(pool_json);
-  const box = document.getElementById("hellosu");
   const audio = document.getElementById("player");
   const table = document.getElementById("playlist");
 
@@ -47,10 +47,44 @@ function initPlayer(pool) {
   setupInput("rowsAfter", 10, (x) => player.rowsAfter = x);
 }
 
-const startButton = document.getElementById("start")
+const settingSelect = document.getElementById("setting");
+const fileSelect = document.getElementById("fileselect");
+const startButton = document.getElementById("start");
 
-const start = () => {
-  loadData('songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
-  startButton.removeEventListener('click', start);
+var activeURLs = []
+
+const resetURLs = () => {
+  for (const url of activeURLs) URL.revokeObjectURL(url);
+  activeURLs = [];
+}
+
+const onSettingChange = () => {
+  const setting = settingSelect.value;
+  fileSelect.hidden = (setting !== "folder");
+}
+
+const onStartClick = () => {
+  resetURLs();
+  const setting = settingSelect.value;
+  if (setting === "default") {
+    loadData('songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
+  } else if (setting === "folder") {
+    const files = fileSelect.files;
+    var pool = [];
+    [...files].forEach((file, index) => {
+      const {name, ext} = splitFilename(file.name);
+      if (!["mp3", "wav", "flac"].includes(ext)) return;
+      const url = URL.createObjectURL(file);
+      activeURLs.push(url);
+      pool.push({
+        id: index,
+        path: url,
+        displayName: name,
+      });
+    });
+    initPlayer(pool);
+  }  
 };
-startButton.addEventListener('click', start);
+
+settingSelect.addEventListener('change', onSettingChange);
+startButton.addEventListener('click', onStartClick);
