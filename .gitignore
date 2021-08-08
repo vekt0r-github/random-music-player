@@ -1,3 +1,7 @@
 .vs
 test/*
 dropbox_setup/*
+/node_modules
+npm-debug.log
+.DS_Store
+/*.env

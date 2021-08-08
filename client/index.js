@@ -31,7 +31,7 @@ const settingSelect = document.getElementById("setting");
 const fileSelect = document.getElementById("fileselect");
 const startButton = document.getElementById("start");
 
-var activeURLs = []
+var activeURLs = [];
 
 const resetURLs = () => {
   for (const url of activeURLs) URL.revokeObjectURL(url);
@@ -40,14 +40,14 @@ const resetURLs = () => {
 
 const onSettingChange = () => {
   const setting = settingSelect.value;
-  fileSelect.hidden = (setting !== "folder");
+  fileSelect.hidden = !["folder", "osu"].includes(setting);
 }
 
 const onStartClick = () => {
   resetURLs();
   const setting = settingSelect.value;
   if (setting === "default") {
-    loadData('songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
+    loadData('data/songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
   } else if (setting === "folder") {
     const files = fileSelect.files;
     var pool = [];
@@ -62,8 +62,11 @@ const onStartClick = () => {
       });
     });
     initPlayer(pool);
-  }  
+  } else if (setting === "osu") {
+
+  }
 };
 
+onSettingChange();
 settingSelect.addEventListener('change', onSettingChange);
 startButton.addEventListener('click', onStartClick);

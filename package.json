@@ -1,0 +1,29 @@
+{
+  "name": "random-music-player",
+  "version": "1.0.0",
+  "description": "plays audio files from a collection at random",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vekt0r-github/randomMusicPlayer.git"
+  },
+  "author": "vluo",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/vekt0r-github/randomMusicPlayer/issues"
+  },
+  "homepage": "https://github.com/vekt0r-github/randomMusicPlayer#readme",
+  "dependencies": {
+    "express": "^4.9.8",
+    "osu-db-parser": "^1.0.37"
+  },
+  "engines": {
+    "node": "15.x"
+  }
+}

@@ -4,10 +4,10 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>audio test</title>
-    <meta name="description" content="can i play audio">
+    <title>random music player</title>
+    <meta name="description" content="plays audio files from a collection at random">
     <meta name="author" content="vluo">
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" type="text/css" href="index.css">
   </head>
   <body>
     <h1>random music player</h1>
@@ -15,6 +15,7 @@
       <select id="setting">
         <option value="default" selected>default songs</option>
         <option value="folder">folder select</option>
+        <option value="osu">osu! collection</option>
       </select>
     </div>
     <div>
@@ -40,7 +41,7 @@
       </audio>
     </div>
     <div id="playlist"></div>
-    <script src="test_audio.js" type="module" crossorigin="use-credentials"></script>
+    <script src="index.js" type="module" crossorigin="use-credentials"></script>
     <noscript>Sorry, your browser does not support JavaScript!</noscript>
   </body>
 </html>
