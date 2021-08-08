@@ -1,27 +1,5 @@
 import { PlayerDisplay } from "./playerDisplay.js";
-import { splitFilename } from "./utils.js";
-
-const audioPath = 'test/';
-
-function loadData(fn, callback) {
-  var oReq = new XMLHttpRequest(); // New request object
-  oReq.onload = function() {
-    // This is where you handle what to do with the response.
-    // The actual data is found on this.responseText
-    callback(this.responseText); 
-  };
-  oReq.open("get", fn, true);
-  //                   ^ Don't block the rest of the execution.
-  //                     Don't wait until the request finishes to
-  //                     continue.
-  oReq.send();
-}
-
-function executeIfInt(value, callback) {
-  if (Number.isInteger(+value)) {
-    callback(+value);
-  }
-}
+import { splitFilename, loadData } from "./utils.js";
 
 function initPlayer(pool) {
   // console.log(pool_json);
@@ -40,7 +18,9 @@ function initPlayer(pool) {
     const element = document.getElementById(elementId);
     element.value = defaultValue;
     callback(defaultValue);
-    element.onchange = () => executeIfInt(element.value, callback);
+    element.addEventListener('change', () => {
+      if (Number.isInteger(+element.value)) callback(+element.value);
+    });
   }
   setupInput("noRepeatNum", 10, (x) => player.noRepeatNum = x);
   setupInput("rowsBefore", 10, (x) => player.rowsBefore = x);
