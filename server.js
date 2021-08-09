@@ -5,7 +5,7 @@ const path = require('path');
 const api = require("./api");
 
 const app = express();
-app.use(bodyParser.json({limit: 250000000000, type: ['application/json', 'text/plain']}));
+app.use(bodyParser.json({limit: 2**30, type: ['application/json', 'text/plain']}));
 
 app.use(express.static(path.join(__dirname, 'client/')));
 app.use("/parser.js", express.static(path.join(__dirname, 'node_modules/osu-db-parser/index.js')));

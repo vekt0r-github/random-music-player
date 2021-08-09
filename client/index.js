@@ -1,5 +1,6 @@
-import { PlayerDisplay } from "./playerDisplay.js";
-import { splitFilename, get, post, readFileBinary } from "./utils.js";
+import { CollectionLoader } from "./collection-loader.js";
+import { PlayerDisplay } from "./player-display.js";
+import { splitFilename, get } from "./utils.js";
 
 function initPlayer(pool) {
   // console.log(pool_json);
@@ -29,39 +30,10 @@ function initPlayer(pool) {
 
 const settingSelect = document.getElementById("setting");
 const fileSelect = document.getElementById("fileselect");
+const osuContainer = document.getElementById("osucontainer");
 const startButton = document.getElementById("start");
 
 var activeURLs = [];
-var osuDirectoryHandle, osuData, collectionData;
-
-const osuSelect = document.getElementById("osuselect");
-const osuSelectStatus = document.getElementById("osuselectstatus");
-const noSelectMsg = "no directory selected";
-const loadingMsg = "now loading!!!!"
-const loadedMsg = "collections loaded!"
-
-const setOsuStatus = (value) => {
-  osuSelectStatus.innerHTML = value;
-};
-
-const onOsuSelectClick = async () => {
-  osuDirectoryHandle = await window.showDirectoryPicker();
-  setOsuStatus(loadingMsg);
-  const getBinaryFile = async (fn) => {
-    const fileHandle = await osuDirectoryHandle.getFileHandle(fn);
-    const file = await fileHandle.getFile();
-    return await readFileBinary(file);
-  }
-  var osuFile = await getBinaryFile("osu!.db");
-  var collectionFile = await getBinaryFile("collection.db");
-  // console.log({osuFile, collectionFile});
-  
-  const response = await post("/api/parsedb", {osuFile, collectionFile})
-  osuData = response.osuData;
-  collectionData = response.collectionData;
-  setOsuStatus(loadedMsg);
-  console.log({osuData, collectionData});
-}
 
 const resetURLs = () => {
   for (const url of activeURLs) URL.revokeObjectURL(url);
@@ -71,8 +43,7 @@ const resetURLs = () => {
 const onSettingChange = () => {
   const setting = settingSelect.value;
   fileSelect.hidden = !["folder"].includes(setting);
-  osuSelect.hidden = !["osu"].includes(setting);
-  osuSelectStatus.hidden = osuSelect.hidden;
+  osuContainer.hidden = !["osu"].includes(setting);
 };
 
 const onStartClick = async () => {
@@ -103,8 +74,8 @@ const onStartClick = async () => {
   }
 };
 
-setOsuStatus(noSelectMsg);
 onSettingChange();
-osuSelect.addEventListener('click', onOsuSelectClick);
 settingSelect.addEventListener('change', onSettingChange);
 startButton.addEventListener('click', onStartClick);
+
+const collectionLoader = new CollectionLoader(osuContainer);

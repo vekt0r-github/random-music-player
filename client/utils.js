@@ -6,20 +6,6 @@ const random = (min, max) => Math.floor(Math.random() * (max - min)) + min; // [
  */
 export const randomChoice = (x) => x[random(0, x.length)];
 
-// /**
-//  * make async http request and run callback on the result
-//  * @param {String} fn filename
-//  * @param {Function} callback function which takes one argument, responseText
-//  */
-// export const loadData = (fn, callback) => {
-//   var oReq = new XMLHttpRequest();
-//   oReq.onload = function() {
-//     callback(this.responseText); 
-//   };
-//   oReq.open("get", fn, true); // no blocking
-//   oReq.send();
-// }
-
 // convert a fetch result to a JSON object with error handling for fetch and json errors
 function convertToJSON(res) {
   if (!res.ok) {
@@ -79,13 +65,18 @@ export const splitFilename = (fn) => {
 export const readFileBinary = (file) => {
   return new Promise((resolve, reject) => {
     let reader = new FileReader();
-
     reader.onload = () => {
       resolve(reader.result);
     };
-
     reader.onerror = reject;
-
     reader.readAsBinaryString(file);
   })
+}
+
+export const newElement = (label, params = {}) => {
+  var element = document.createElement(label);
+  for (const [attribute, value] of Object.entries(params)) {
+    element[attribute] = value;
+  }
+  return element;
 }
