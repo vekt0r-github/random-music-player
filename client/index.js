@@ -1,5 +1,5 @@
 import { PlayerDisplay } from "./playerDisplay.js";
-import { splitFilename, loadData } from "./utils.js";
+import { splitFilename, get, post, readFileBinary } from "./utils.js";
 
 function initPlayer(pool) {
   // console.log(pool_json);
@@ -32,26 +32,62 @@ const fileSelect = document.getElementById("fileselect");
 const startButton = document.getElementById("start");
 
 var activeURLs = [];
+var osuDirectoryHandle, osuData, collectionData;
+
+const osuSelect = document.getElementById("osuselect");
+const osuSelectStatus = document.getElementById("osuselectstatus");
+const noSelectMsg = "no directory selected";
+const loadingMsg = "now loading!!!!"
+const loadedMsg = "collections loaded!"
+
+const setOsuStatus = (value) => {
+  osuSelectStatus.innerHTML = value;
+};
+
+const onOsuSelectClick = async () => {
+  osuDirectoryHandle = await window.showDirectoryPicker();
+  setOsuStatus(loadingMsg);
+  const getBinaryFile = async (fn) => {
+    const fileHandle = await osuDirectoryHandle.getFileHandle(fn);
+    const file = await fileHandle.getFile();
+    return await readFileBinary(file);
+  }
+  var osuFile = await getBinaryFile("osu!.db");
+  var collectionFile = await getBinaryFile("collection.db");
+  // console.log({osuFile, collectionFile});
+  
+  const response = await post("/api/parsedb", {osuFile, collectionFile})
+  osuData = response.osuData;
+  collectionData = response.collectionData;
+  setOsuStatus(loadedMsg);
+  console.log({osuData, collectionData});
+}
 
 const resetURLs = () => {
   for (const url of activeURLs) URL.revokeObjectURL(url);
   activeURLs = [];
-}
+};
 
 const onSettingChange = () => {
   const setting = settingSelect.value;
-  fileSelect.hidden = !["folder", "osu"].includes(setting);
-}
+  fileSelect.hidden = !["folder"].includes(setting);
+  osuSelect.hidden = !["osu"].includes(setting);
+  osuSelectStatus.hidden = osuSelect.hidden;
+};
 
-const onStartClick = () => {
+const onStartClick = async () => {
   resetURLs();
   const setting = settingSelect.value;
   if (setting === "default") {
-    loadData('data/songs.json', (pool_json) => initPlayer(JSON.parse(pool_json)));
+    get('data/songs.json')
+      .then((pool) => {
+        console.log(pool);
+        initPlayer(pool);
+      });
   } else if (setting === "folder") {
-    const files = fileSelect.files;
+    const files = [...fileSelect.files];
     var pool = [];
-    [...files].forEach((file) => {
+    files.forEach((file) => {
       const {name, ext} = splitFilename(file.name);
       if (!["mp3", "wav", "flac"].includes(ext)) return;
       const url = URL.createObjectURL(file);
@@ -63,10 +99,12 @@ const onStartClick = () => {
     });
     initPlayer(pool);
   } else if (setting === "osu") {
-
+    var pool = [];
   }
 };
 
+setOsuStatus(noSelectMsg);
 onSettingChange();
+osuSelect.addEventListener('click', onOsuSelectClick);
 settingSelect.addEventListener('change', onSettingChange);
 startButton.addEventListener('click', onStartClick);

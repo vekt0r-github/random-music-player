@@ -13,13 +13,15 @@
     <h1>random music player</h1>
     <div>
       <select id="setting">
-        <option value="default" selected>default songs</option>
+        <option value="default">default songs</option>
         <option value="folder">folder select</option>
-        <option value="osu">osu! collection</option>
+        <option value="osu" selected>osu! collection</option>
       </select>
     </div>
     <div>
       <input type="file" accept="image/*" webkitdirectory id="fileselect" hidden/>
+      <button type="button" id="osuselect" hidden>select osu! folder</button>
+      <span id="osuselectstatus"></span>
     </div>
     <div>
       <button type="button" id="start">start</button>
