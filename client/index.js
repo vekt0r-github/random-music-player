@@ -23,7 +23,7 @@ function initPlayer(pool) {
       if (Number.isInteger(+element.value)) callback(+element.value);
     });
   }
-  setupInput("noRepeatNum", 10, (x) => player.noRepeatNum = x);
+  setupInput("noRepeatNum", Math.min(10, pool.length-1), (x) => player.noRepeatNum = x);
   setupInput("rowsBefore", 10, (x) => player.rowsBefore = x);
   setupInput("rowsAfter", 10, (x) => player.rowsAfter = x);
 }
@@ -33,12 +33,20 @@ const fileSelect = document.getElementById("fileselect");
 const osuContainer = document.getElementById("osucontainer");
 const startButton = document.getElementById("start");
 
+const collectionLoader = new CollectionLoader(osuContainer);
+
 var activeURLs = [];
 
 const resetURLs = () => {
   for (const url of activeURLs) URL.revokeObjectURL(url);
   activeURLs = [];
 };
+
+const makeAudioURL = (file) => {
+  const url = URL.createObjectURL(file);
+  activeURLs.push(url);
+  return url;
+}
 
 const onSettingChange = () => {
   const setting = settingSelect.value;
@@ -61,8 +69,7 @@ const onStartClick = async () => {
     files.forEach((file) => {
       const {name, ext} = splitFilename(file.name);
       if (!["mp3", "wav", "flac"].includes(ext)) return;
-      const url = URL.createObjectURL(file);
-      activeURLs.push(url);
+      const url = makeAudioURL(file);
       pool.push({
         path: url,
         displayName: name,
@@ -70,12 +77,26 @@ const onStartClick = async () => {
     });
     initPlayer(pool);
   } else if (setting === "osu") {
-    var pool = [];
+    const collection = collectionLoader.collections[collectionLoader.selectedCollection];
+    const hashes = new Set(collection.beatmapsMd5);
+    const beatmaps = collectionLoader.findMaps(hashes);
+    const promises = beatmaps.map(async (beatmap) => {
+      const handle = await collectionLoader.getAudioHandle(beatmap);
+      if (handle === null) return null; // silently remove beatmap
+      const url = await handle.getFile().then(makeAudioURL);
+      const useUnicode = true;
+      const artist = beatmap[`artist_name${(useUnicode && beatmap.artist_name_unicode) ? "_unicode" : ""}`];
+      const title = beatmap[`song_title${(useUnicode && beatmap.song_title_unicode) ? "_unicode" : ""}`];
+      return {
+        path: url,
+        displayName: `${artist} - ${title}`,
+      };
+    });
+    const pool = await Promise.all(promises);
+    initPlayer(pool.filter(x => x !== null));
   }
 };
 
 onSettingChange();
 settingSelect.addEventListener('change', onSettingChange);
 startButton.addEventListener('click', onStartClick);
-
-const collectionLoader = new CollectionLoader(osuContainer);
