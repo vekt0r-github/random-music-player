@@ -15,7 +15,8 @@ export class Player {
     this.poolSize = pool.length;
     // default values
     this._bufferSize = 0;
-    this._autoplay = false; 
+    this._autoplay = false;
+    this._songsLeft = -1; // negative = no limit
     this._volume = 1.0; 
     this._noRepeatNum = 0;
   }
@@ -73,6 +74,12 @@ export class Player {
     this.playCurr();
   }
 
+  autoplayNext() {
+    if (this.songsLeft === 0) return;
+    this.songsLeft -= 1;
+    this.playNext();
+  }
+
   get bufferSize() { return this._bufferSize; }
 
   set bufferSize(value) {
@@ -85,7 +92,13 @@ export class Player {
   set autoplay(value) {
     this._autoplay = value;
     const operation = (value ? 'add' : 'remove') + 'EventListener';
-    this.audioElement[operation]("ended", () => this.playNext.bind(this)());
+    this.audioElement[operation]("ended", () => this.autoplayNext.bind(this)());
+  }
+
+  get songsLeft() { return this._songsLeft; }
+
+  set songsLeft(value) {
+    this._songsLeft = value;
   }
 
   get volume() { return this._volume; }
@@ -105,6 +118,7 @@ export class Player {
   reset() {
     this.playlist = [];
     this.currSong = 0;
+    this.songsLeft = -1;
     this.availableIndices = new Set(this.pool.keys());
     this.buffer();
   }

@@ -9,3 +9,11 @@ modes supported:
   - note: all song folders with a tilde character ('~') seem to be inaccessible with the File System Access API, so these songs are silently removed :(
 
 dropbox integration and more features coming later
+
+todos:
+- list all songs in pool
+- ability to remove songs
+- stretch: move songs around and add songs
+- improve textboxes
+- add the none collection
+- add unicode display toggle and similar settings

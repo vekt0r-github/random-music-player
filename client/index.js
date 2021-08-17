@@ -7,7 +7,7 @@ function initPlayer(pool) {
   const audio = document.getElementById("player");
   const table = document.getElementById("playlist");
 
-  const player = new PlayerDisplay(audio, table, pool);
+  const player = new PlayerDisplay(audio, table, document.getElementById("songsLeft"), pool);
   player.reset();
   player.volume = 0.25;
   player.autoplay = true;
@@ -20,12 +20,23 @@ function initPlayer(pool) {
     element.value = defaultValue;
     callback(defaultValue);
     element.addEventListener('change', () => {
-      if (Number.isInteger(+element.value)) callback(+element.value);
+       callback(element.value);
     });
   }
-  setupInput("noRepeatNum", Math.min(10, pool.length-1), (x) => player.noRepeatNum = x);
-  setupInput("rowsBefore", 10, (x) => player.rowsBefore = x);
-  setupInput("rowsAfter", 10, (x) => player.rowsAfter = x);
+  const checkInt = (x) => Number.isInteger(parseInt(x))
+  setupInput("noRepeatNum", Math.min(10, pool.length-1), (x) => {
+    if (checkInt(x) && x >= 0) player.noRepeatNum = +x;
+  });
+  setupInput("rowsBefore", 10, (x) => {
+    if (checkInt(x) && x >= 0) player.rowsBefore = +x;
+  });
+  setupInput("rowsAfter", 10, (x) => {
+    if (checkInt(x) && x >= 0) player.rowsAfter = +x;
+  });
+  setupInput("songsLeft", "", (x) => {
+    if (checkInt(x)) player.songsLeft = +x;
+    else if (x === "") player.songsLeft = -1;
+  });
 }
 
 const settingSelect = document.getElementById("setting");

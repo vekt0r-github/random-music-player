@@ -1,9 +1,10 @@
 import { Player } from "./player.js";
 
 export class PlayerDisplay extends Player {
-  constructor(audioElement, displayElement, pool) {
+  constructor(audioElement, displayElement, songsLeftElement, pool) {
     super(audioElement, pool);
     this.displayElement = displayElement;
+    this.songsLeftElement = songsLeftElement;
     // default values
     this._rowsBefore = 0; // number of entries to display before current song
     this._rowsAfter = 0;
@@ -17,6 +18,11 @@ export class PlayerDisplay extends Player {
   playCurr() {
     super.playCurr();
     this.refreshPlaylist();
+  }
+
+  autoplayNext() {
+    super.autoplayNext();
+    this.songsLeftElement.value = this.songsLeft < 0 ? "" : this.songsLeft;
   }
   
   /**

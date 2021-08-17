@@ -13,9 +13,9 @@
     <h1>random music player</h1>
     <div>
       <select id="setting">
-        <option value="default">default songs</option>
+        <option value="default" selected>default songs</option>
         <option value="folder">folder select</option>
-        <option value="osu" selected>osu! collection</option>
+        <option value="osu">osu! collection</option>
       </select>
     </div>
     <div>
@@ -33,7 +33,8 @@
     <div>
       <label for="noRepeatNum">no repeat: </label><input type="text" id="noRepeatNum"><br>
       <label for="rowsBefore">rows before: </label><input type="text" id="rowsBefore"><br>
-      <label for="rowsAfter">rows after: </label><input type="text" id="rowsAfter">
+      <label for="rowsAfter">rows after: </label><input type="text" id="rowsAfter"><br>
+      <label for="songsLeft">songs left: </label><input type="text" id="songsLeft">
     </div>
     <div>
       <audio id="player" controls>
