@@ -12,7 +12,7 @@ dropbox integration and more features coming later
 
 todos:
 - list all songs in pool
-- ability to remove songs
+- ability to remove songs <-
 - stretch: move songs around and add songs
 - improve textboxes
 - add the none collection

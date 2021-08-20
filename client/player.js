@@ -80,6 +80,20 @@ export class Player {
     this.playNext();
   }
 
+  removeSong(relativeNum) { // relative to currSong
+    console.assert(relativeNum > 0);
+    const index = this.currSong + relativeNum;
+    const firstBanIndex = this.playlist.length - this._noRepeatNum;
+    if (index >= firstBanIndex) {
+      this.availableIndices.add(this.playlist[index].index);
+      if (firstBanIndex > 0) {
+        this.availableIndices.delete(this.playlist[firstBanIndex - 1].index);
+      }
+    }
+    this.playlist.splice(index, 1);
+    this.buffer();
+  }
+
   get bufferSize() { return this._bufferSize; }
 
   set bufferSize(value) {

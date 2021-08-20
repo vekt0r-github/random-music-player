@@ -52,6 +52,16 @@ export class PlayerDisplay extends Player {
       }
       cell.innerHTML = title;
       row.appendChild(cell);
+
+      var deleteButton = document.createElement('td');
+      if (i > this.currSong && i < this.playlist.length) {
+        const diff = i - this.currSong;
+        deleteButton.innerHTML = "x";
+        deleteButton.addEventListener('click', () => {
+          this.removeSong.bind(this)(diff);
+        });
+      }
+      row.appendChild(deleteButton);
       table.appendChild(row);
     }
     const oldChild = this.displayElement.firstChild;
