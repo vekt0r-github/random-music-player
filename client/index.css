@@ -3,6 +3,22 @@ table, td {
   border-collapse: collapse;
 }
 
+div {
+  margin: 4px;
+}
+
+.playlist-container {
+  margin: 4px;
+  display: flex;
+}
+
+.scroll-container {
+  margin: 4px;
+  border: 1px solid black;
+  overflow: auto;
+  width: max-content;
+}
+
 .selected {
   background-color: yellow;
 }

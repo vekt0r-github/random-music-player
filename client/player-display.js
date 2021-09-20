@@ -1,10 +1,18 @@
-import { Player } from "./player.js";
+import { Player, Lists } from "./player.js";
+import { newElement, makeTable, scrollIfNeeded } from "./utils.js";
 
 export class PlayerDisplay extends Player {
   constructor(audioElement, displayElement, songsLeftElement, pool) {
     super(audioElement, pool);
     this.displayElement = displayElement;
     this.songsLeftElement = songsLeftElement;
+    this.tableContainer = newElement('div');
+    this.poolTableContainer = newElement('div', {
+      id: "poolcontainer",
+      classList: ["scroll-container"],
+      style: "height: 360px",
+    });
+    this.displayElement.replaceChildren(this.tableContainer, this.poolTableContainer);
     // default values
     this._rowsBefore = 0; // number of entries to display before current song
     this._rowsAfter = 0;
@@ -15,8 +23,8 @@ export class PlayerDisplay extends Player {
     this.refreshPlaylist();
   }
 
-  playCurr() {
-    super.playCurr();
+  playSong(song) {
+    super.playSong(song);
     this.refreshPlaylist();
   }
 
@@ -24,52 +32,72 @@ export class PlayerDisplay extends Player {
     super.autoplayNext();
     this.songsLeftElement.value = this.songsLeft < 0 ? "" : this.songsLeft;
   }
-  
+
+  refreshPlaylist() {
+    const table = this.makePlaylistTable();
+    this.tableContainer.replaceChildren(table);
+    const poolTable = this.makePoolTable();
+    this.poolTableContainer.replaceChildren(poolTable);
+    if (this.selectedList === Lists.POOL) { // scroll selected element into view for pool
+      const currRow = poolTable.children[this.nowPlaying.index];
+      scrollIfNeeded(currRow, this.poolTableContainer);
+    }
+  }
+
   /**
    * creates an HTML table showing recent/coming up songs
    */
-  refreshPlaylist() {
-    var table = document.createElement('table');
-    table.classList.add("playlist");
-    const fromSong = this.currSong - this._rowsBefore;
-    const toSong = this.currSong + this._rowsAfter;
-    for (var i = fromSong; i <= toSong; i++) {
-      var row = document.createElement('tr');
-      var cell = document.createElement('td');
-      var title = '';
+  makePlaylistTable() {
+    let entries = [];
+    const makeCell = (text, onclick, selected) => ({text, onclick, selected});
+    const fromSong = this.currPlaylistLoc - this._rowsBefore;
+    const toSong = this.currPlaylistLoc + this._rowsAfter;
+    for (let i = fromSong; i <= toSong; i++) {
+      let title = '';
+      let onclick = () => {};
+      let selected = false;
       if (i >= 0 && i < this.playlist.length) {
         title = this.playlist[i].displayName;
-        const diff = i - this.currSong;
+        const diff = i - this.currPlaylistLoc;
         if (diff === 0) {
-          row.classList.add("selected");
+          selected = this.selectedList === Lists.PLAYLIST;
         } else if (diff < 0) {
-          // console.log(i + ' is less than ' + this.currSong);
-          cell.onclick = () => this.playPrev.bind(this)(-diff);
+          onclick = () => this.playPrev.bind(this)(-diff);
         } else {
-          // console.log(i + ' is more than ' + this.currSong);
-          cell.onclick = () => this.playNext.bind(this)(diff);
+          onclick = () => this.playNext.bind(this)(diff);
         }
       }
-      cell.innerHTML = title;
-      row.appendChild(cell);
+      let cell = makeCell(title, onclick, selected);
 
-      var deleteButton = document.createElement('td');
-      if (i > this.currSong && i < this.playlist.length) {
-        const diff = i - this.currSong;
-        deleteButton.innerHTML = "x";
-        deleteButton.addEventListener('click', () => {
-          this.removeSong.bind(this)(diff);
-        });
+      let xtitle = '';
+      let xonclick = () => {};
+      if (i > this.currPlaylistLoc && i < this.playlist.length) {
+        xtitle = "x";
+        const diff = i - this.currPlaylistLoc;
+        xonclick = () => this.removeSong.bind(this)(diff);
       }
-      row.appendChild(deleteButton);
-      table.appendChild(row);
+      let xbutton = makeCell(xtitle, xonclick, selected);
+      entries.push([cell, xbutton]);
     }
-    const oldChild = this.displayElement.firstChild;
-    if (oldChild === null) {
-      this.displayElement.appendChild(table);
-    } else {
-      this.displayElement.replaceChild(table, oldChild);
+    return makeTable(entries);
+  }
+
+  /**
+   * creates an HTML table with the entire pool of songs in order
+   */
+  makePoolTable() {
+    let entries = [];
+    const makeCell = (text, onclick, selected) => ({text, onclick, selected});
+    for (const song of this.pool) {
+      const onclick = () => this.playFromPool(song.index);
+      const selected = this.selectedList === Lists.POOL && song.index === this.nowPlaying.index;
+      const cell = makeCell(song.displayName, onclick, selected);
+
+      const ponclick = () => { this.insertSong(1, song); };
+      const pbutton = makeCell("+", ponclick, selected);
+      entries.push([cell, pbutton]);
     }
+    return makeTable(entries);
   }
 
   get rowsBefore() { return this._rowsBefore; }

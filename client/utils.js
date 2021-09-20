@@ -56,9 +56,9 @@ export function post(endpoint, params = {}) {
  * @returns object {name, ext}
  */
 export const splitFilename = (fn) => {
-  var dot = fn.lastIndexOf('.');
-  var ext = fn.substr(dot + 1);
-  var name = fn.substr(0, dot);
+  let dot = fn.lastIndexOf('.');
+  let ext = fn.substr(dot + 1);
+  let name = fn.substr(0, dot);
   return {name, ext};
 };
 
@@ -70,13 +70,47 @@ export const readFileBinary = (file) => {
     };
     reader.onerror = reject;
     reader.readAsBinaryString(file);
-  })
+  });
 }
 
 export const newElement = (label, params = {}) => {
-  var element = document.createElement(label);
+  let element = document.createElement(label);
   for (const [attribute, value] of Object.entries(params)) {
     element[attribute] = value;
   }
   return element;
+}
+
+/**
+ * turns a 2d array of entries into an HTML table
+ * @param {*} entries [[{text, onclick, selected}]]
+ */
+export const makeTable = (entries) => {
+  let table = document.createElement('table');
+  table.classList.add("playlist");
+  entries.forEach((entryRow) => {
+    let row = document.createElement('tr');
+    entryRow.forEach((entryCell) => {
+      let cell = document.createElement('td');
+      const {text, onclick, selected} = entryCell;
+      cell.innerHTML = text;
+      cell.addEventListener('click', onclick);
+      if (selected) cell.classList.add("selected");
+      row.appendChild(cell);
+    });
+    table.appendChild(row);
+  });
+  return table;
+}
+
+export const scrollIfNeeded = (element, container) => {
+  if (element.offsetTop < container.scrollTop) {
+    container.scrollTop = element.offsetTop;
+  } else {
+    const offsetBottom = element.offsetTop + element.offsetHeight;
+    const scrollBottom = container.scrollTop + container.offsetHeight;
+    if (offsetBottom > scrollBottom) {
+      container.scrollTop = offsetBottom - container.offsetHeight;
+    }
+  }
 }

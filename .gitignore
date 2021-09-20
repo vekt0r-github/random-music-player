@@ -1,6 +1,7 @@
 .vs
 test/*
 dropbox_setup/*
+ignore/*
 /node_modules
 npm-debug.log
 .DS_Store

@@ -1,4 +1,4 @@
-import { post, readFileBinary, newElement } from "./utils.js";
+import { post, readFileBinary, newElement, makeTable } from "./utils.js";
 
 export class CollectionLoader {
   constructor(container) {
@@ -13,12 +13,13 @@ export class CollectionLoader {
       hidden: true,
     });
     this.collectionTableLabel = newElement('label', {
-      for: "tablecontainer",
+      for: "collectioncontainer",
       innerHTML: "collections:",
     });
     this.collectionTableContainer = newElement('div', {
-      id: "tablecontainer",
-      style: "height: 360px; border: 1px solid black; overflow: auto; width: max-content",
+      id: "collectioncontainer",
+      classList: ["scroll-container"],
+      style: "height: 360px",
     });
     this.noSelectMsg = "no directory selected";
     this.loadingMsg = "now loading!!!!";
@@ -37,8 +38,8 @@ export class CollectionLoader {
         const file = await fileHandle.getFile();
         return await readFileBinary(file);
       }
-      var osuFile = await getBinaryFile("osu!.db");
-      var collectionFile = await getBinaryFile("collection.db");
+      let osuFile = await getBinaryFile("osu!.db");
+      let collectionFile = await getBinaryFile("collection.db");
       // console.log({osuFile, collectionFile});
       
       const response = await post("/api/parsedb", {osuFile, collectionFile})
@@ -47,7 +48,7 @@ export class CollectionLoader {
       this.setOsuStatus(this.loadedMsg);
 
       const songsHandle = await this.osuDirectoryHandle.getDirectoryHandle("Songs");
-      var asdf = [];
+      let asdf = [];
       for await (let [name, handle] of songsHandle) {
         asdf.push({name, handle});
       }
@@ -60,12 +61,9 @@ export class CollectionLoader {
     
     this.setOsuStatus(this.noSelectMsg);
     this.osuSelect.addEventListener('click', onOsuSelectClick.bind(this));
-    this.folderSelectContainer.appendChild(this.osuSelect);
-    this.folderSelectContainer.appendChild(this.osuSelectStatus);
-    this.container.appendChild(this.folderSelectContainer);
-    this.collectionSelectContainer.appendChild(this.collectionTableLabel);
-    this.collectionSelectContainer.appendChild(this.collectionTableContainer);
-    this.container.appendChild(this.collectionSelectContainer);
+    this.folderSelectContainer.replaceChildren(this.osuSelect, this.osuSelectStatus);
+    this.collectionSelectContainer.replaceChildren(this.collectionTableLabel, this.collectionTableContainer);
+    this.container.replaceChildren(this.folderSelectContainer, this.collectionSelectContainer);
   }
   
   setOsuStatus(value) { this.osuSelectStatus.innerHTML = " " + value; }
@@ -103,35 +101,29 @@ export class CollectionLoader {
   }
 
   selectCollection(index) {
-    const getRow = (i) => this.collectionTableContainer.firstChild.getElementsByTagName('tr')[i];
-    if (this.selectedCollection !== undefined) {
-      getRow(this.selectedCollection).classList.remove("selected");
-    }
-    getRow(index).classList.add("selected");
+    // const getRow = (i) => this.collectionTableContainer.firstChild.getElementsByTagName('tr')[i];
+    // if (this.selectedCollection !== undefined) {
+    //   getRow(this.selectedCollection).classList.remove("selected");
+    // }
+    // getRow(index).classList.add("selected");
     this.selectedCollection = index;
+    this.refreshTable();
   }
 
+  /**
+   * remakes the collection table, keeping the outside scroll container in the same place
+   */
   refreshTable() {
     if (!this.loaded) return;
     this.collectionSelectContainer.hidden = false;
-    var table = document.createElement('table');
+
+    const entries = this.collections.map((collection, index) => [{
+      text: `${collection.name} (${collection.beatmapsCount})`,
+      onclick: () => this.selectCollection.bind(this)(index),
+      selected: this.selectedCollection === index,
+    }]);
+    const table = makeTable(entries);
     table.classList.add("collectionlist");
-
-    this.collections.forEach((collection, index) => {
-      var row = document.createElement('tr');
-      var cell = document.createElement('td');
-      var title = `${collection.name} (${collection.beatmapsCount})`;
-      cell.addEventListener('click', () => this.selectCollection.bind(this)(index));
-      cell.innerHTML = title;
-      row.appendChild(cell);
-      table.appendChild(row);
-    });
-
-    const oldChild = this.collectionTableContainer.firstChild;
-    if (oldChild === null) {
-      this.collectionTableContainer.appendChild(table);
-    } else {
-      this.collectionTableContainer.replaceChild(table, oldChild);
-    }
+    this.collectionTableContainer.replaceChildren(table);
   }
 }

@@ -5,7 +5,7 @@ import { splitFilename, get } from "./utils.js";
 function initPlayer(pool) {
   // console.log(pool_json);
   const audio = document.getElementById("player");
-  const table = document.getElementById("playlist");
+  const table = document.getElementById("playlists");
 
   const player = new PlayerDisplay(audio, table, document.getElementById("songsLeft"), pool);
   player.reset();
@@ -46,7 +46,7 @@ const startButton = document.getElementById("start");
 
 const collectionLoader = new CollectionLoader(osuContainer);
 
-var activeURLs = [];
+let activeURLs = [];
 
 const resetURLs = () => {
   for (const url of activeURLs) URL.revokeObjectURL(url);
@@ -76,7 +76,7 @@ const onStartClick = async () => {
       });
   } else if (setting === "folder") {
     const files = [...fileSelect.files];
-    var pool = [];
+    let pool = [];
     files.forEach((file) => {
       const {name, ext} = splitFilename(file.name);
       if (!["mp3", "wav", "flac"].includes(ext)) return;

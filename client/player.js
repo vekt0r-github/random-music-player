@@ -1,5 +1,10 @@
 import { randomChoice } from "./utils.js";
 
+export const Lists = Object.freeze({
+  PLAYLIST: 0,
+  POOL: 1,
+});
+
 export class Player {
   /**
    * Turns audioElement into an audio player which plays
@@ -41,7 +46,7 @@ export class Player {
    * generates future songs, up to buffer specified by this.bufferSize
    */
   buffer() {
-    while (this.playlist.length - this.currSong - 1 < this.bufferSize) {
+    while (this.playlist.length - this.currPlaylistLoc - 1 < this.bufferSize) {
       this.bufferOne();
     }
   }
@@ -50,26 +55,36 @@ export class Player {
    * regenerates everything after currSong if user doesn't like it
    */
   rebuffer() {
-    this.playlist = this.playlist.slice(0, this.currSong + 1);
-    const recentCutoff = Math.max(this.currSong - this._noRepeatNum + 1, 0)
-    const recent = this.playlist.slice(recentCutoff, this.currSong + 1).map(song => song.index);
+    this.playlist = this.playlist.slice(0, this.currPlaylistLoc + 1);
+    const recentCutoff = Math.max(this.currPlaylistLoc - this._noRepeatNum + 1, 0)
+    const recent = this.playlist.slice(recentCutoff, this.currPlaylistLoc + 1).map(song => song.index);
     this.availableIndices = new Set([...this.pool.keys()].filter(x => !recent.includes(x)));
     this.buffer();
   }
 
-  playPrev(num = 1) {
-    this.currSong = Math.max(0, this.currSong - num);
-    this.playCurr();
-  }
-
-  playCurr() {
-    const song = this.playlist[this.currSong];
+  playSong(song) {
+    this.nowPlaying = song;
     this.audioElement.src = song.path;
     this.audioElement.play();
   }
 
+  playFromPool(index) { 
+    this.selectedList = Lists.POOL;
+    this.playSong(this.pool[index]);
+  }
+
+  playCurr() {
+    this.selectedList = Lists.PLAYLIST;
+    this.playSong(this.playlist[this.currPlaylistLoc]);
+  }
+
+  playPrev(num = 1) {
+    this.currPlaylistLoc = Math.max(0, this.currPlaylistLoc - num);
+    this.playCurr();
+  }
+
   playNext(num = 1) {
-    this.currSong += num;
+    this.currPlaylistLoc += num;
     this.buffer();
     this.playCurr();
   }
@@ -77,12 +92,16 @@ export class Player {
   autoplayNext() {
     if (this.songsLeft === 0) return;
     this.songsLeft -= 1;
-    this.playNext();
+    if (this.selectedList === Lists.PLAYLIST) {
+      this.playNext();
+    } else {
+      this.playFromPool((this.nowPlaying.index + 1) % this.poolSize);
+    }
   }
 
   removeSong(relativeNum) { // relative to currSong
     console.assert(relativeNum > 0);
-    const index = this.currSong + relativeNum;
+    const index = this.currPlaylistLoc + relativeNum;
     const firstBanIndex = this.playlist.length - this._noRepeatNum;
     if (index >= firstBanIndex) {
       this.availableIndices.add(this.playlist[index].index);
@@ -91,6 +110,20 @@ export class Player {
       }
     }
     this.playlist.splice(index, 1);
+    this.buffer();
+  }
+
+  insertSong(relativeNum, song) { // relative to currSong
+    console.assert(relativeNum > 0);
+    const index = this.currPlaylistLoc + relativeNum;
+    const firstBanIndex = this.playlist.length + 1 - this._noRepeatNum;
+    if (index >= firstBanIndex) {
+      if (firstBanIndex > 0) {
+        this.availableIndices.add(this.playlist[firstBanIndex - 1].index);
+      }
+      this.availableIndices.delete(this.playlist[index].index);
+    }
+    this.playlist.splice(index, 0, song);
     this.buffer();
   }
 
@@ -131,9 +164,11 @@ export class Player {
 
   reset() {
     this.playlist = [];
-    this.currSong = 0;
+    this.currPlaylistLoc = 0;
     this.songsLeft = -1;
     this.availableIndices = new Set(this.pool.keys());
+    this.nowPlaying = null;
+    this.selectedList = Lists.PLAYLIST; // PLAYLIST | POOL
     this.buffer();
   }
 };
