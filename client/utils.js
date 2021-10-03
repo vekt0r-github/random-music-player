@@ -6,6 +6,9 @@ const random = (min, max) => Math.floor(Math.random() * (max - min)) + min; // [
  */
 export const randomChoice = (x) => x[random(0, x.length)];
 
+// for negative numbers
+export const mod = (m, n) => ((m % n) + n) % n;
+
 // convert a fetch result to a JSON object with error handling for fetch and json errors
 function convertToJSON(res) {
   if (!res.ok) {

@@ -1,4 +1,4 @@
-import { randomChoice } from "./utils.js";
+import { randomChoice, mod } from "./utils.js";
 
 export const Lists = Object.freeze({
   PLAYLIST: 0,
@@ -80,24 +80,28 @@ export class Player {
   }
 
   playPrev(num = 1) {
-    this.currPlaylistLoc = Math.max(0, this.currPlaylistLoc - num);
-    this.playCurr();
+    if (this.selectedList === Lists.PLAYLIST) {
+      this.currPlaylistLoc = Math.max(0, this.currPlaylistLoc - num);
+      this.playCurr();
+    } else {
+      this.playFromPool(mod(this.nowPlaying.index - 1, this.poolSize));
+    }
   }
 
   playNext(num = 1) {
-    this.currPlaylistLoc += num;
-    this.buffer();
-    this.playCurr();
+    if (this.selectedList === Lists.PLAYLIST) {
+      this.currPlaylistLoc += num;
+      this.buffer();
+      this.playCurr();
+    } else {
+      this.playFromPool((this.nowPlaying.index + 1) % this.poolSize);
+    }
   }
 
   autoplayNext() {
     if (this.songsLeft === 0) return;
     this.songsLeft -= 1;
-    if (this.selectedList === Lists.PLAYLIST) {
-      this.playNext();
-    } else {
-      this.playFromPool((this.nowPlaying.index + 1) % this.poolSize);
-    }
+    this.playNext();
   }
 
   removeSong(relativeNum) { // relative to currSong
