@@ -94,14 +94,15 @@ const onStartClick = async () => {
       const handle = await collectionLoader.getAudioHandle(beatmap);
       if (handle === null) return null; // silently remove beatmap
       const url = await handle.getFile().then(makeAudioURL);
-      const artistUni = beatmap.artist_name_unicode;
-      const titleUni = beatmap.song_title_unicode;
+      const artistUnicode = beatmap.artist_name_unicode;
+      const titleUnicode = beatmap.song_title_unicode;
       const artist = beatmap.artist_name;
       const title = beatmap.song_title;
       return {
         path: url,
         displayName: `${artist} - ${title}`,
-        displayNameUnicode: `${artistUni ? artistUni : artist} - ${titleUni ? titleUni : title}`,
+        displayNameUnicode: artistUnicode ? `${artistUnicode} - ${titleUnicode}` : undefined,
+        artist, title, artistUnicode, titleUnicode,
       };
     });
     const pool = await Promise.all(promises);

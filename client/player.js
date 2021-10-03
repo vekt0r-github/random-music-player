@@ -63,6 +63,7 @@ export class Player {
   }
 
   playSong(song) {
+    console.log(song)
     this.nowPlaying = song;
     this.audioElement.src = song.path;
     this.audioElement.play();

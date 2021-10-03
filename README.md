@@ -14,3 +14,4 @@ todos:
 - move songs around
 - improve textboxes
 - add the none collection
+- option to export collection to an osu! subfolder

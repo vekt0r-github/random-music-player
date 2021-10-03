@@ -50,6 +50,14 @@ export class PlayerDisplay extends Player {
 
   playSong(song) {
     super.playSong(song);
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: this.maybeUni(song, 'title') ?? this.maybeUni(song, 'displayName'),
+        artist: this.maybeUni(song, 'artist'),
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrev.bind(this)());
+      navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext.bind(this)());
+    }
     this.refreshPlaylist();
   }
 
@@ -82,7 +90,7 @@ export class PlayerDisplay extends Player {
       let onclick = () => {};
       let selected = false;
       if (i >= 0 && i < this.playlist.length) {
-        title = this.getTitle(this.playlist[i]);
+        title = this.maybeUni(this.playlist[i], 'displayName');
         const diff = i - this.currPlaylistLoc;
         if (diff === 0) {
           selected = this.selectedList === Lists.PLAYLIST;
@@ -117,7 +125,7 @@ export class PlayerDisplay extends Player {
     for (const song of songs) {
       const onclick = () => this.playFromPool(song.index);
       const selected = this.selectedList === Lists.POOL && song.index === this.nowPlaying.index;
-      const cell = makeCell(this.getTitle(song), onclick, selected);
+      const cell = makeCell(this.maybeUni(song, 'displayName'), onclick, selected);
 
       const ponclick = () => { this.insertSong(1, song); };
       const pbutton = makeCell("+", ponclick, selected);
@@ -148,10 +156,10 @@ export class PlayerDisplay extends Player {
     this.refreshPlaylist();
   }
 
-  getTitle(song) {
+  maybeUni(song, property) {
     let title;
-    if (this._useUnicode) title = song.displayNameUnicode;
-    return title ? title : song.displayName;
+    if (this._useUnicode) title = song[`${property}Unicode`];
+    return title ?? song[property];
   }
 
   reset() {
