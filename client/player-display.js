@@ -94,10 +94,16 @@ export class PlayerDisplay extends Player {
         const diff = i - this.currPlaylistLoc;
         if (diff === 0) {
           selected = this.selectedList === Lists.PLAYLIST;
-        } else if (diff < 0) {
-          onclick = () => this.playPrev.bind(this)(-diff);
+          onclick = () => {
+            if (this.selectedList !== Lists.PLAYLIST) {
+              this.playCurr.bind(this)();
+            }
+          };
         } else {
-          onclick = () => this.playNext.bind(this)(diff);
+          onclick = () => {
+            this.selectedList = Lists.PLAYLIST;
+            this[`play${diff > 0 ? 'Next' : 'Prev'}`].bind(this)(Math.abs(diff));
+          };
         }
       }
       let cell = makeCell(title, onclick, selected);
