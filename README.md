@@ -16,3 +16,5 @@ todos:
 - add the none collection
 - sort pool list
 - option to export collection to an osu! subfolder
+- allow pool to playlist via clicking on current song
+- use api https://github.com/remanifest/s-ul-curl-uploader
