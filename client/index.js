@@ -71,7 +71,6 @@ const onStartClick = async () => {
   if (setting === "default") {
     get('data/songs.json')
       .then((pool) => {
-        console.log(pool);
         initPlayer(pool);
       });
   } else if (setting === "folder") {
@@ -95,12 +94,14 @@ const onStartClick = async () => {
       const handle = await collectionLoader.getAudioHandle(beatmap);
       if (handle === null) return null; // silently remove beatmap
       const url = await handle.getFile().then(makeAudioURL);
-      const useUnicode = true;
-      const artist = beatmap[`artist_name${(useUnicode && beatmap.artist_name_unicode) ? "_unicode" : ""}`];
-      const title = beatmap[`song_title${(useUnicode && beatmap.song_title_unicode) ? "_unicode" : ""}`];
+      const artistUni = beatmap.artist_name_unicode;
+      const titleUni = beatmap.song_title_unicode;
+      const artist = beatmap.artist_name;
+      const title = beatmap.song_title;
       return {
         path: url,
         displayName: `${artist} - ${title}`,
+        displayNameUnicode: `${artistUni ? artistUni : artist} - ${titleUni ? titleUni : title}`,
       };
     });
     const pool = await Promise.all(promises);

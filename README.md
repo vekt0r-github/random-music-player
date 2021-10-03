@@ -11,9 +11,6 @@ modes supported:
 dropbox integration and more features coming later
 
 todos:
-- list all songs in pool
-- ability to remove songs <-
-- stretch: move songs around and add songs
+- move songs around
 - improve textboxes
 - add the none collection
-- add unicode display toggle and similar settings
