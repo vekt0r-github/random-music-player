@@ -66,6 +66,9 @@ export class Player {
     console.log(song)
     this.nowPlaying = song;
     this.audioElement.src = song.path;
+    this.audioElement.onerror = () => {
+      this.playNext();
+    };
     this.audioElement.play();
   }
 
