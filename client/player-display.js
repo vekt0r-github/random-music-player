@@ -50,11 +50,11 @@ export class PlayerDisplay extends Player {
 
   playSong(song) {
     super.playSong(song);
+    const artist = this.maybeUni(song, 'artist');
+    const title = this.maybeUni(song, 'title') ?? this.maybeUni(song, 'displayName');
+    document.getElementById('nowPlaying').innerHTML = `now playing: ${artist ? `${artist} - ${title}` : title}`;
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: this.maybeUni(song, 'title') ?? this.maybeUni(song, 'displayName'),
-        artist: this.maybeUni(song, 'artist'),
-      });
+      navigator.mediaSession.metadata = new MediaMetadata({artist, title});
       navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrev.bind(this)());
       navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext.bind(this)());
     }

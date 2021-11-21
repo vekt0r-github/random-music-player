@@ -8,7 +8,7 @@ modes supported:
 - osu! collection: select your osu! folder, then pick one of your collections from the list
   - note: all song folders with a tilde character ('~') seem to be inaccessible with the File System Access API, so these songs are silently removed :(
 
-dropbox integration and more features coming later
+dropbox integration and more features coming laterTM
 
 todos:
 - move songs around
@@ -16,5 +16,4 @@ todos:
 - add the none collection
 - sort pool list
 - option to export collection to an osu! subfolder
-- allow pool to playlist via clicking on current song
 - use api https://github.com/remanifest/s-ul-curl-uploader
