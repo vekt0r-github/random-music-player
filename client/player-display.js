@@ -50,8 +50,12 @@ export class PlayerDisplay extends Player {
 
   playSong(song) {
     super.playSong(song);
-    const artist = this.maybeUni(song, 'artist');
-    const title = this.maybeUni(song, 'title') ?? this.maybeUni(song, 'displayName');
+    this.refreshMetadata();
+  }
+
+  refreshMetadata() {
+    const artist = this.maybeUni(this.nowPlaying, 'artist');
+    const title = this.maybeUni(this.nowPlaying, 'title') ?? this.maybeUni(this.nowPlaying, 'displayName');
     document.getElementById('nowPlaying').innerHTML = `now playing: ${artist ? `${artist} - ${title}` : title}`;
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({artist, title});
@@ -159,7 +163,7 @@ export class PlayerDisplay extends Player {
 
   set useUnicode(value) {
     this._useUnicode = value;
-    this.refreshPlaylist();
+    this.refreshMetadata();
   }
 
   maybeUni(song, property) {
