@@ -9,6 +9,8 @@
 
 const express = require("express");
 
+const OsuDBParser = require('osu-db-parser');
+
 // api endpoints: all these paths will be prefixed with "/api/"
 const router = express.Router();
 
@@ -21,10 +23,27 @@ router.post("/initsocket", (req, res) => {
   res.send({});
 });
 
+router.get("/songs/default", async (req, res) => {
+  // do nothing if user not logged in
+  data = await fetch("./data/songs.json");
+  res.send(data);
+});
 
-// |------------------------------|
-// | write your API methods below!|
-// |------------------------------|
+router.post("/parsedb", (req, res) => {
+  const toBuffer = (fileStr) => {
+    const encoding = 'binary';
+    // const file = new File([fileStr], "");
+    return Buffer.from(fileStr, encoding);
+  }
+
+  // console.log(req.body);
+  const osuBuffer = toBuffer(req.body.osuFile);
+  const collectionBuffer = toBuffer(req.body.collectionFile);
+  const parser = new OsuDBParser(osuBuffer, collectionBuffer);
+  const osuData = parser.getOsuDBData();
+  const collectionData = parser.getCollectionData();
+  res.send({osuData, collectionData});
+});
 
 // anything else falls to this "not found" case
 router.all("*", (req, res) => {
