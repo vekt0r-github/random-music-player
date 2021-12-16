@@ -63,7 +63,13 @@ module.exports = {
   },
   plugins: [new webpack.HotModuleReplacementPlugin()],
   devServer: {
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: entryFile,
+      rewrites: [
+        // shows favicon
+        { from: /favicon.ico/, to: path.resolve(outputDir, 'favicon.ico') }
+      ]
+    },
     contentBase: "./client/dist",
     hot: true,
     proxy: {

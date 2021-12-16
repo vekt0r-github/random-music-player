@@ -1,44 +1,16 @@
 import { CollectionLoader } from "./collection-loader.js";
-import { PlayerDisplay } from "./player-display.js";
 import { splitFilename, get } from "./utils.js";
 
 import defaultPool from '../data/songs.json';
 
 export function setup() {
-  function initPlayer(pool) {
+  // console.log(this)
+  const initPlayer = (pool) => {
     // console.log(pool_json);
-    const audio = document.getElementById("player");
-    const table = document.getElementById("playlists");
-
-    const player = new PlayerDisplay(audio, table, document.getElementById("songsLeft"), pool);
-    player.reset();
-    player.volume = 0.25;
-    player.autoplay = true;
-    player.playCurr();
-    document.getElementById("refresh").onclick = () => player.refreshPlaylist.bind(player)();
-    document.getElementById("prev").onclick = () => player.playPrev.bind(player)();
-    document.getElementById("next").onclick = () => player.playNext.bind(player)();
-    const setupInput = (elementId, defaultValue, callback) => {
-      const element = document.getElementById(elementId);
-      element.value = defaultValue;
-      callback(defaultValue);
-      element.addEventListener('change', () => {
-        callback(element.value);
-      });
-    }
-    const checkInt = (x) => Number.isInteger(parseInt(x))
-    setupInput("noRepeatNum", Math.min(10, pool.length-1), (x) => {
-      if (checkInt(x) && x >= 0) player.noRepeatNum = +x;
-    });
-    setupInput("rowsBefore", 10, (x) => {
-      if (checkInt(x) && x >= 0) player.rowsBefore = +x;
-    });
-    setupInput("rowsAfter", 10, (x) => {
-      if (checkInt(x) && x >= 0) player.rowsAfter = +x;
-    });
-    setupInput("songsLeft", "", (x) => {
-      if (checkInt(x)) player.songsLeft = +x;
-      else if (x === "") player.songsLeft = -1;
+    const initNoRepeatNum = Math.min(100, pool.length-1);
+    this.setState({
+      pool: pool,
+      noRepeatNum: initNoRepeatNum,
     });
   }
 

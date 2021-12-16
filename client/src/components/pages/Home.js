@@ -1,5 +1,8 @@
 import React, { Component } from "react";
 
+import Player from "../modules/Player.js";
+import SettingInput from "../modules/SettingInput.js";
+
 import { setup } from "/client/src/scripts/index.js";
 
 /**
@@ -9,14 +12,37 @@ export default class Home extends Component {
   // makes props available in this component
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      pool: [],
+      noRepeatNum: 100,
+      rowsBefore: 1,
+      rowsAfter: 10,
+      useUnicode: true,
+    };
   }
 
   componentDidMount() {
-    setup();
+    setup.bind(this)();
   }
 
   render() {
+    const makeNumberSettingField = (prop) => {
+      return (
+        <SettingInput
+          id={prop.replace(/([A-Z])/g, "-$1").toLowerCase()}
+          type='text'
+          defaultValue={this.state[prop]}
+          onInput={(e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value)) {
+              this.setState({
+                [prop]: value,
+              });
+            }
+          }}/>
+      );
+    };
+
     return (
       <>
         <h1>random music player</h1>
@@ -35,24 +61,30 @@ export default class Home extends Component {
           <button type="button" id="start">start</button>
           <button type="button" id="refresh">refresh</button>
         </div>
-        <div>
-          <button type="button" id="prev">&lt;</button>
-          <button type="button" id="next">&gt;</button>
+        <div id="settings">
+          {makeNumberSettingField('noRepeatNum')}
+          {makeNumberSettingField('rowsBefore')}
+          {makeNumberSettingField('rowsAfter')}
+          <SettingInput
+            id='use-unicode'
+            type='checkbox'
+            defaultChecked={true}
+            onChange={(e) => {
+              console.log("JHOI")
+              console.log(e.target.checked)
+              this.setState({
+                useUnicode: e.target.checked,
+              });
+            }}/>
         </div>
-        <div>
-          <label htmlFor="noRepeatNum">no repeat: </label><input type="text" id="noRepeatNum" /><br/>
-          <label htmlFor="rowsBefore">rows before: </label><input type="text" id="rowsBefore" /><br/>
-          <label htmlFor="rowsAfter">rows after: </label><input type="text" id="rowsAfter" /><br/>
-          <label htmlFor="songsLeft">songs left: </label><input type="text" id="songsLeft" />
-        </div>
-        <div>
-          <audio id="player" className="player-audio" controls>
-            <source src="" type="audio/mp3" />
-            text if audio doesn't work
-          </audio>
-          <br/>
-          <p id="nowPlaying"></p>
-        </div>
+        {this.state.pool.length ? 
+          <Player
+            pool={this.state.pool}
+            noRepeatNum={this.state.noRepeatNum}
+            rowsBefore={this.state.rowsBefore}
+            rowsAfter={this.state.rowsAfter}
+            useUnicode={this.state.useUnicode}
+          /> : null}
         <div id="playlists" className="playlist-container"></div>
       </>
     )
