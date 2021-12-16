@@ -1,5 +1,5 @@
 import { CollectionLoader } from "./collection-loader.js";
-import { splitFilename, get } from "./utils.js";
+import { splitFilename } from "./utils.js";
 
 import defaultPool from '../data/songs.json';
 

@@ -59,7 +59,6 @@ export default class Home extends Component {
         <div id="osucontainer"></div>
         <div>
           <button type="button" id="start">start</button>
-          <button type="button" id="refresh">refresh</button>
         </div>
         <div id="settings">
           {makeNumberSettingField('noRepeatNum')}
@@ -70,8 +69,6 @@ export default class Home extends Component {
             type='checkbox'
             defaultChecked={true}
             onChange={(e) => {
-              console.log("JHOI")
-              console.log(e.target.checked)
               this.setState({
                 useUnicode: e.target.checked,
               });

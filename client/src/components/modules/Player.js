@@ -33,7 +33,7 @@ export default class Player extends Component {
       currPoolLoc: 0, // not saved when playlist is active
       selectedList: Lists.PLAYLIST, // PLAYLIST | POOL
       songsLeftActive: false, // controls whether songsLeft applies
-      songsLeft: 10, // how many more songs to autoplay before stopping
+      songsLeft: 0, // how many more songs to autoplay before stopping
       poolSearchQuery: "",
     });
 
@@ -78,7 +78,6 @@ export default class Player extends Component {
    * @param {Number} newIndex to no longer be available (new to banned region)
    */
   replaceAvailableIndex(oldIndex, newIndex) {
-    console.log(oldIndex, newIndex, this.availableIndices.size)
     if (oldIndex !== undefined) this.availableIndices.add(oldIndex);
     if (newIndex !== undefined) this.availableIndices.delete(newIndex);
   }
