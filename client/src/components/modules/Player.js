@@ -38,6 +38,8 @@ export default class Player extends Component {
     });
 
     this.state = this.newDefaultState();
+
+    this.songsLeftInput = React.createRef();
   }
 
   componentDidMount = () => {
@@ -62,7 +64,7 @@ export default class Player extends Component {
     });
     this.poolSize = this.pool.length;
     this.availableIndices = new Set(this.props.pool.keys()),
-    this.songsLeftInput = React.createRef();
+    this.playerInitialized = false;
 
     this.setState(this.newDefaultState(), () => {
       this.buffer();
@@ -120,7 +122,7 @@ export default class Player extends Component {
 
   onAudioChange = (element) => { // dunno why the element param doesn't work
     this.player = ReactDOM.findDOMNode(element);
-    if (!this.playerInitialized) {
+    if (this.player && !this.playerInitialized) {
       this.player.volume = 0.2;
       this.playerInitialized = true;
     }
@@ -170,8 +172,6 @@ export default class Player extends Component {
     this.setState({
       songsLeft: this.state.songsLeft - 1,
     }, () => {
-      console.log("hi", this.state.songsLeft)
-      console.log(this.songsLeftInput)
       this.songsLeftInput.current.value = this.state.songsLeft;
       this.playNext();
     });
@@ -350,8 +350,8 @@ export default class Player extends Component {
             <SettingInput
               id='search-pool'
               type='text'
-              onKeyUp={(event) => this.setState({
-                poolSearchQuery: event.target.name,
+              onKeyUp={(e) => this.setState({
+                poolSearchQuery: e.target.value,
               })}
             />
             <Table id="pool" entries={poolEntries} />

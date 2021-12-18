@@ -29,6 +29,10 @@ router.get("/songs/default", async (req, res) => {
   res.send(data);
 });
 
+/**
+ * osuData = { beatmaps, folder_count, osuver, username }
+ * collectionData = { collection, osuver }
+ */
 router.post("/parsedb", (req, res) => {
   const toBuffer = (fileStr) => {
     const encoding = 'binary';
