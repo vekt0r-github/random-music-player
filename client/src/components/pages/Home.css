@@ -2,6 +2,13 @@
   margin: var(--s);
 }
 
+#startButton {
+  background-color: #4e4;
+  width: 100px;
+  height: 30px;
+  border-radius: 15px;
+}
+
 .content {
   margin: var(--xs) 0;
 }

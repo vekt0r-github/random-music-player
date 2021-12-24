@@ -125,7 +125,7 @@ export default class Home extends Component {
       <div id={styles.home}>
         <h1>random music player</h1>
         <div className={styles.content}>
-          <select id="mode" value={this.state.mode} onChange={this.onModeChange}>
+          <select id={styles.modes} value={this.state.mode} onChange={this.onModeChange}>
             <option value={Modes.DEFAULT}>default songs</option>
             <option value={Modes.FOLDER}>folder select</option>
             <option value={Modes.OSU}>osu! collection</option>
@@ -138,7 +138,11 @@ export default class Home extends Component {
         {this.state.mode === Modes.OSU ?
           <CollectionLoader ref={this.collectionLoader} className={styles.content}/> : null}
         <div className={styles.content}>
-          <button type="button" id="start" onClick={this.start}>start</button>
+          <button
+            type="button" 
+            id={styles.startButton}
+            onClick={this.start}
+            >!mp start</button>
         </div>
         <div id="settings" className={styles.content}>
           {makeNumberSettingField('noRepeatNum', this.noRepeatNumInput)}

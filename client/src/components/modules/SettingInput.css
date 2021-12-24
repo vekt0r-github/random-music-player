@@ -1,3 +1,8 @@
-.settingInput {
-  margin: var(--xxxs) 0;
+.inputContainer {
+  margin: var(--xxs) 0;
+}
+
+.input {
+  padding: 0 var(--xs);
+  max-width: 160px;
 }

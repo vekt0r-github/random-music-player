@@ -8,17 +8,20 @@ import styles from "./SettingInput.css";
  * and will likely contain {defaultValue, some event listener}
  */
 const SettingInput = React.forwardRef((props, ref) => {
-  let { id, label } = props;
+  let { id, type, label } = props;
   if (label === undefined) {
     // label = id.replace(/([A-Z])/g, " $1").toLowerCase() + ': ';
     label = id.replace(/(\-)/g, " ") + ': ';
   }
-  let inputProps = {...props};
+  let inputProps = {
+    ...props,
+    ref: ref,
+    className: styles.input,
+  };
   delete inputProps.label;
-  let inputElement = <input ref={ref}/>
-  inputElement = {...inputElement, props}
+  let inputElement = React.createElement("input", inputProps);
   return (
-    <div className={styles.settingInput}>
+    <div className={styles.inputContainer}>
       <label htmlFor={id}>{label}</label>
       {inputElement}
       <br/>
