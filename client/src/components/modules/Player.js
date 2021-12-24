@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 
+import PlayerAudio from "../modules/PlayerAudio.js";
 import SettingInput from "../modules/SettingInput.js";
 import Table from "./Table.js";
 
@@ -34,14 +34,12 @@ export default class Player extends Component {
       currPlaylistLoc: 0, // saved when pool is active
       currPoolLoc: 0, // not saved when playlist is active
       selectedList: Lists.PLAYLIST, // PLAYLIST | POOL
-      songsLeftActive: false, // controls whether songsLeft applies
-      songsLeft: 0, // how many more songs to autoplay before stopping
       poolSearchQuery: "",
     });
 
     this.state = this.newDefaultState();
 
-    this.songsLeftInput = React.createRef();
+    this.playerAudio = React.createRef();
   }
 
   componentDidMount = () => {
@@ -51,6 +49,7 @@ export default class Player extends Component {
   componentDidUpdate = (oldProps) => {
     if (oldProps.pool !== this.props.pool) {
       this.reset();
+      return;
     }
     if (oldProps.noRepeatNum !== this.props.noRepeatNum) {
       this.rebuffer();
@@ -122,14 +121,6 @@ export default class Player extends Component {
     }, this.buffer);
   }
 
-  onAudioChange = (element) => { // dunno why the element param doesn't work
-    this.player = ReactDOM.findDOMNode(element);
-    if (this.player && !this.playerInitialized) {
-      this.player.volume = 0.2;
-      this.playerInitialized = true;
-    }
-  }
-
   playFrom = (list, index) => { 
     const property = list === Lists.PLAYLIST
       ? 'currPlaylistLoc'
@@ -139,7 +130,7 @@ export default class Player extends Component {
       [property]: index,
     }, () => {
       this.buffer();
-      this.player.play();
+      this.playerAudio.current.play();
     });
   }
 
@@ -168,17 +159,6 @@ export default class Player extends Component {
   playNext = (num = 1, list) => {
     this.playPrev(-num, list);
     // playFrom buffers every time now
-  }
-
-  autoplayNext = () => {
-    if (!this.state.songsLeftActive) { this.playNext(); return; }
-    if (this.state.songsLeft === 0) { return; }
-    this.setState({
-      songsLeft: this.state.songsLeft - 1,
-    }, () => {
-      this.songsLeftInput.current.value = this.state.songsLeft;
-      this.playNext();
-    });
   }
 
   removeSong = (relativeNum) => { // relative to currSong
@@ -236,15 +216,6 @@ export default class Player extends Component {
       return <></>
     }
 
-    // compute and refresh metadata
-    const artist = maybeUni(nowPlaying, 'artist');
-    const title = maybeUni(nowPlaying, 'title') ?? maybeUni(nowPlaying, 'displayName');
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({artist, title});
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrev());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
-    }
-
     // make playlist entries
     const playlistEntries = (() => {
       let entries = [];
@@ -300,53 +271,15 @@ export default class Player extends Component {
     })(this.state.poolSearchQuery);
 
     return (
-      <div className={styles.container}>
+      <div className={styles.playerDisplayContainer}>
         <div id="player-container" className={styles.playerContainer}>
-          <audio 
-            ref={this.onAudioChange} 
-            id="player" 
-            className="player-audio"
-            src={nowPlaying.path}
-            onError={() => this.playNext()}
-            onEnded={() => this.autoplayNext()}
-            controls
-          >
-            text if audio doesn't work
-            {this.state.selectedList}
-            {this.state.currPlaylistLoc}
-          </audio>
-          <br/>
-          <p id="nowPlaying">now playing: {artist ? `${artist} - ${title}` : title}</p>
-          <div id="player-buttons">
-            <button type="button" id="prev" onClick={() => this.playPrev()}>&lt;</button>
-            <button type="button" id="next" onClick={() => this.playNext()}>&gt;</button>
-          </div>
-          <div id="songs-left-container">
-            <SettingInput
-              id='enable-timer'
-              type='checkbox'
-              onInput={(e) => {
-                this.setState({
-                  songsLeftActive: e.target.checked,
-                });
-              }}
-            />
-            {this.state.songsLeftActive ?
-              <SettingInput
-                ref={this.songsLeftInput}
-                id='songs-left'
-                type='text'
-                defaultValue={this.state.songsLeft}
-                onInput={(e) => {
-                  let value = parseInt(e.target.value);
-                  if (isNaN(value)) { return; }
-                  this.setState({
-                    songsLeft: value,
-                  });
-                }}
-                onBlur={(e) => { e.target.value = this.state.songsLeft }}
-              /> : null}
-          </div>
+          <PlayerAudio
+            ref={this.playerAudio}
+            nowPlaying={nowPlaying}
+            playPrev={() => this.playPrev()}
+            playNext={() => this.playNext()}
+            useUnicode={this.props.useUnicode}
+          />
         </div>
         <div id="display-container" className={styles.displayContainer}>
           <div className={styles.list}>

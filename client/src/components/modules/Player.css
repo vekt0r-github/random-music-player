@@ -1,8 +1,12 @@
 .container {
-  background-color: #fbeefb;
   border-radius: var(--m);
   padding: var(--s);
   width: fit-content;
+}
+
+.playerDisplayContainer {
+  composes: container;
+  background-color: #fbeefb;
   margin: var(--s) 0;
 }
 
