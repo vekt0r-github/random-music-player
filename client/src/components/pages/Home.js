@@ -8,11 +8,14 @@ import { splitFilename, getAudioHandle } from "../../scripts/utils.js";
 
 import defaultPool from '../../data/songs.json';
 
+import "../../utilities.css";
+import styles from "./Home.css";
+
 const Modes = Object.freeze({
   DEFAULT: "default",
   FOLDER: "folder",
   OSU: "osu",
-})
+});
 
 /**
  * Define the "Home" component as a class.
@@ -119,9 +122,9 @@ export default class Home extends Component {
     };
 
     return (
-      <>
+      <div id={styles.home}>
         <h1>random music player</h1>
-        <div>
+        <div className={styles.content}>
           <select id="mode" value={this.state.mode} onChange={this.onModeChange}>
             <option value={Modes.DEFAULT}>default songs</option>
             <option value={Modes.FOLDER}>folder select</option>
@@ -129,15 +132,15 @@ export default class Home extends Component {
           </select>
         </div>
         {this.state.mode === Modes.FOLDER ? 
-          <div>
+          <div className={styles.content}>
             <input type="file" accept="image/*" webkitdirectory="true" ref={this.fileSelect} />
           </div> : null}
         {this.state.mode === Modes.OSU ?
-          <CollectionLoader ref={this.collectionLoader}/> : null}
-        <div>
+          <CollectionLoader ref={this.collectionLoader} className={styles.content}/> : null}
+        <div className={styles.content}>
           <button type="button" id="start" onClick={this.start}>start</button>
         </div>
-        <div id="settings">
+        <div id="settings" className={styles.content}>
           {makeNumberSettingField('noRepeatNum', this.noRepeatNumInput)}
           {makeNumberSettingField('rowsBefore')}
           {makeNumberSettingField('rowsAfter')}
@@ -153,14 +156,14 @@ export default class Home extends Component {
         </div>
         {this.state.pool.length ? 
           <Player
+            className={styles.content}
             pool={this.state.pool}
             noRepeatNum={this.state.noRepeatNum}
             rowsBefore={this.state.rowsBefore}
             rowsAfter={this.state.rowsAfter}
             useUnicode={this.state.useUnicode}
           /> : null}
-        <div id="playlists" className="playlist-container"></div>
-      </>
+      </div>
     )
   }
 }

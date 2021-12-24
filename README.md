@@ -13,7 +13,6 @@ dropbox integration and more features coming laterTM
 todos:
 - move songs around
 - improve textboxes
-- add the none collection
 - sort pool list
 - option to export collection to an osu! subfolder
 - use api https://github.com/remanifest/s-ul-curl-uploader

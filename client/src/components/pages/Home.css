@@ -1,1 +1,7 @@
-/* Fill me in :) */
+#home {
+  margin: var(--s);
+}
+
+.content {
+  margin: var(--xs) 0;
+}

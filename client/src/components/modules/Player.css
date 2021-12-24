@@ -1,0 +1,22 @@
+.container {
+  background-color: #fbeefb;
+  border-radius: var(--m);
+  padding: var(--s);
+  width: fit-content;
+  margin: var(--s) 0;
+}
+
+.playerContainer {
+  composes: container;
+  background-color: #ffd3f3;
+  margin-top: 0;
+}
+
+.displayContainer {
+  composes: container;
+  display: flex;
+}
+
+.list + .list {
+  margin-left: var(--s);
+}

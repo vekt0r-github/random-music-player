@@ -6,6 +6,8 @@ import Table from "./Table.js";
 
 import { randomChoice, mod } from "../../scripts/utils.js";
 
+import styles from "./Player.css";
+
 export const Lists = Object.freeze({
   PLAYLIST: "playlist",
   POOL: "pool",
@@ -142,17 +144,19 @@ export default class Player extends Component {
   }
 
   playPrev = (num = 1, list) => {
-    if (list) {
-      this.setState({
-        selectedList: list,
-      });
-    }
+    // if (list) {
+    //   this.setState({
+    //     selectedList: list,
+    //   });
+    // }
+    console.log(list)
     list = list ?? this.state.selectedList;
+    console.log(list)
     if (list === Lists.PLAYLIST) {
       const newLoc = Math.max(0, this.state.currPlaylistLoc - num);
       this.playFrom(Lists.PLAYLIST, newLoc);
     } else {
-      const newLoc = mod(this.currPoolLoc - 1, this.poolSize);
+      const newLoc = mod(this.state.currPoolLoc - num, this.poolSize);
       this.playFrom(Lists.POOL, newLoc);
     }
   }
@@ -268,10 +272,10 @@ export default class Player extends Component {
   
         let xtitle = '';
         let xonclick = () => {};
-        if (i > this.currPlaylistLoc && i < this.playlist.length) {
+        if (i > this.state.currPlaylistLoc && i < this.state.playlist.length) {
           xtitle = "x";
-          const diff = i - this.currPlaylistLoc;
-          xonclick = () => this.removeSong.bind(this)(diff);
+          const diff = i - this.state.currPlaylistLoc;
+          xonclick = () => this.removeSong(diff);
         }
         let xbutton = makeCell(xtitle, xonclick, selected);
         entries.push([cell, xbutton]);
@@ -284,8 +288,8 @@ export default class Player extends Component {
       let entries = [];
       const songs = this.pool.filter(song => song.displayName.toLowerCase().includes(query.toLowerCase()));
       for (const song of songs) {
-        const onclick = () => this.playFromPool(song.index);
-        const selected = this.selectedList === Lists.POOL && song.index === this.nowPlaying.index;
+        const onclick = () => this.playFrom(Lists.POOL, song.index);
+        const selected = this.state.selectedList === Lists.POOL && song.index === this.state.currPoolLoc;
         const cell = makeCell(maybeUni(song, 'displayName'), onclick, selected);
   
         const ponclick = () => { this.insertSong(1, song); };
@@ -296,8 +300,8 @@ export default class Player extends Component {
     })(this.state.poolSearchQuery);
 
     return (
-      <>
-        <div id="player-container">
+      <div className={styles.container}>
+        <div id="player-container" className={styles.playerContainer}>
           <audio 
             ref={this.onAudioChange} 
             id="player" 
@@ -344,9 +348,12 @@ export default class Player extends Component {
               /> : null}
           </div>
         </div>
-        <div id="display-container">
-          <Table id="playlist" entries={playlistEntries} />
-          <div>
+        <div id="display-container" className={styles.displayContainer}>
+          <div className={styles.list}>
+            <label htmlFor="playlist">upcoming songs:</label>
+            <Table id="playlist" entries={playlistEntries} />
+          </div>
+          <div className={styles.list}>
             <SettingInput
               id='search-pool'
               type='text'
@@ -354,10 +361,10 @@ export default class Player extends Component {
                 poolSearchQuery: e.target.value,
               })}
             />
-            <Table id="pool" entries={poolEntries} />
+            <Table id="pool" entries={poolEntries} maxHeight="360px" />
           </div>
         </div>
-      </>
+      </div>
     )
   }
 }

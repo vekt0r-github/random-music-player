@@ -4,12 +4,12 @@ import Table from "./Table.js";
 
 import { post, readFileBinary } from "../../scripts/utils.js";
 
-const Messages = {
+const Messages = Object.freeze({
   NOSELECT: "no directory selected",
   LOADING: "now loading!!!!",
   LOADED: "collections loaded!",
   ERROR: "something went wrong (need an osu! installation root directory)"
-};
+});
 
 export default class CollectionLoader extends Component {
   /**
@@ -90,7 +90,7 @@ export default class CollectionLoader extends Component {
         onclick: () => this.selectCollection(index),
         selected: this.state.selectedCollection === index,
       }]);
-      collectionSelectTable = <Table entries={entries}/>;
+      collectionSelectTable = <Table entries={entries} maxHeight="360px"/>;
     }
 
     return (

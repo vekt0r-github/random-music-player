@@ -1,21 +1,28 @@
 import React from "react";
 
-export default function Table({ entries }) {
+import styles from "./Table.css";
+
+export default function Table({ entries, maxHeight }) {
   const Row = ({ entries }) => {
     return (
       <tr>
         {entries.map(({text, onclick, selected}, index) => {
-          const className = selected ? "selected" : "";
+          const className = `
+            ${styles.cell}
+            ${selected ? styles.selected : ''}
+          `;
           return <td onClick={onclick} className={className} key={index}>{text}</td>
         })}
       </tr>
     );
   }
   return (
-    <table>
-      <tbody>
-        {entries.map((row, index) => <Row entries={row} key={index} />)}
-      </tbody>
-    </table>
+    <div className={styles.container} style={{maxHeight: maxHeight}}>
+      <table className={styles.table}>
+        <tbody>
+          {entries.map((row, index) => <Row entries={row} key={index} />)}
+        </tbody>
+      </table>
+    </div>
   );
 }
