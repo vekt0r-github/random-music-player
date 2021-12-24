@@ -1,0 +1,27 @@
+.audioContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nowPlaying {
+  margin: var(--s) auto;
+  max-width: 300px;
+}
+
+.button {
+  background-color: #ff99e8;
+  width: 100px;
+  height: 30px;
+  border-radius: 15px;
+  font-size: 22px;
+}
+
+.button + .button {
+  margin-left: var(--s);
+}
+
+.timerContainer {
+  align-self: flex-start;
+  margin-top: var(--s);
+}

@@ -2,6 +2,7 @@
   border: 1px solid black;
   background-color: white;
   width: fit-content;
+  max-width: 270px; /* fine for now */
   overflow: auto;
 }
 
@@ -11,6 +12,7 @@
 
 .cell {
   border: 1px solid black;
+  padding: var(--xxs) var(--xs);
 }
 
 .selected {

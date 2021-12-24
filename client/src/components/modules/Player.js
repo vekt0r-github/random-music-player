@@ -284,7 +284,7 @@ export default class Player extends Component {
         <div id="display-container" className={styles.displayContainer}>
           <div className={styles.list}>
             <label htmlFor="playlist">upcoming songs:</label>
-            <Table id="playlist" entries={playlistEntries} />
+            <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
           </div>
           <div className={styles.list}>
             <SettingInput

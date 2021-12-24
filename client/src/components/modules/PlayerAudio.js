@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 
 import SettingInput from "../modules/SettingInput.js";
 
-// import styles from "./PlayerAudio.css";
+import styles from "./PlayerAudio.css";
 
 export default class PlayerAudio extends Component {
   /**
@@ -86,24 +86,34 @@ export default class PlayerAudio extends Component {
     }
 
     return (
-      <>
+      <div className={styles.audioContainer}>
         <audio 
           ref={this.onAudioChange} 
           id="player" 
-          className="player-audio"
           src={nowPlaying.path}
           onError={() => this.props.playNext()}
           onEnded={() => this.autoplayNext()}
           controls>
           text if audio doesn't work
         </audio>
-        <br/>
-        <p id="nowPlaying">now playing: {artist ? `${artist} - ${title}` : title}</p>
-        <div id="player-buttons">
-          <button type="button" id="prev" onClick={() => this.props.playPrev()}>&lt;</button>
-          <button type="button" id="next" onClick={() => this.props.playNext()}>&gt;</button>
+        <div className={styles.nowPlaying}>
+          now playing: {artist ? `${artist} - ${title}` : title}
         </div>
-        <div id="songs-left-container">
+        <div id="player-buttons">
+          <button
+            type="button"
+            id="prev"
+            className={styles.button}
+            onClick={() => this.props.playPrev()}
+            >&lt;</button>
+          <button 
+            type="button" 
+            id="next" 
+            className={styles.button}
+            onClick={() => this.props.playNext()}
+            >&gt;</button>
+        </div>
+        <div className={styles.timerContainer}>
           <SettingInput
             id='enable-timer'
             type='checkbox'
@@ -129,7 +139,7 @@ export default class PlayerAudio extends Component {
               onBlur={(e) => { e.target.value = this.state.songsLeft }}
             /> : null}
         </div>
-      </>
+      </div>
     )
   }
 }

@@ -19,6 +19,7 @@
 .displayContainer {
   composes: container;
   display: flex;
+  flex-wrap: wrap;
 }
 
 .list + .list {
