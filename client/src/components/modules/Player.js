@@ -31,15 +31,17 @@ export default class Player extends Component {
     super(props);
     this.newDefaultState = () => ({
       playlist: [],
-      currPlaylistLoc: 0, // saved when pool is active
-      currPoolLoc: 0, // not saved when playlist is active
+      currPlaylistLoc: 0, // saved when pool is active, unlike currPoolLoc
+      currPoolLoc: 0, // position in *display* pool-- possibly NOT an integer!
       selectedList: Lists.PLAYLIST, // PLAYLIST | POOL
       poolSearchQuery: "",
+      filterToQuery: false, // whether rng pulls from search results
     });
 
     this.state = this.newDefaultState();
 
     this.playerAudio = React.createRef();
+    this.nowPlaying = undefined;
   }
 
   componentDidMount = () => {
@@ -47,14 +49,15 @@ export default class Player extends Component {
   }
 
   componentDidUpdate = (oldProps) => {
-    if (oldProps.pool !== this.props.pool) {
+    const diffProps = (prop) => oldProps[prop] !== this.props[prop];
+    if (diffProps('pool')) {
       this.reset();
       return;
     }
-    if (oldProps.noRepeatNum !== this.props.noRepeatNum) {
+    if (diffProps('noRepeatNum')) {
       this.rebuffer();
-    }
-    if (oldProps.rowsAfter !== this.props.rowsAfter) {
+    } 
+    if (diffProps('rowAfter')) {
       this.buffer();
     }
   }
@@ -63,7 +66,6 @@ export default class Player extends Component {
     this.pool = this.props.pool.map((song, index) => {
       return {...song, index}; 
     });
-    this.poolSize = this.pool.length;
     this.availableIndices = new Set(this.props.pool.keys()),
     this.playerInitialized = false;
 
@@ -86,17 +88,62 @@ export default class Player extends Component {
   }
 
   /**
+   * find current search results to display
+   * should preserve index order
+   * @returns [Song] filtered from pool
+   */
+  poolSearchResults(newQuery) {
+    const query = (newQuery ?? this.state.poolSearchQuery).toLowerCase();
+    return this.pool.filter(song => {
+      return song.displayName.toLowerCase().includes(query); // not unicode
+    });
+  }
+
+  /**
+   * recomputes pool loc for the search query
+   */
+  onQueryChange(newQuery) {
+    if (newQuery === this.state.poolSearchQuery) { return; }
+    let indices = this.poolSearchResults(newQuery);
+    indices = indices.filter(song => song.index <= this.nowPlaying.index);
+    let newLoc;
+    console.log(indices)
+    console.log(indices.slice(-1).index, this.nowPlaying.index)
+    if (indices.length && indices.slice(-1)[0].index === this.nowPlaying.index) {
+      newLoc = indices.length - 1; // on an entry
+    } else {
+      newLoc = indices.length - 0.5; // between entries
+    }
+    this.setState({
+      currPoolLoc: newLoc,
+      poolSearchQuery: newQuery,
+    });
+  }
+
+  /**
    * generates future songs, up to buffer specified by this.props.rowsAfter
    */
   buffer = () => {
+    const poolResults = this.poolSearchResults();
+    const noRepeatNum = this.props.noRepeatNum;
     const newPlaylist = [...this.state.playlist];
     while (newPlaylist.length - this.state.currPlaylistLoc - 1 < this.props.rowsAfter) {
-      console.assert(this.props.noRepeatNum < this.poolSize);
-      console.assert(this.availableIndices.size >= this.poolSize - this.props.noRepeatNum);
-      const newIndex = randomChoice([...this.availableIndices]);
+      console.assert(noRepeatNum < this.pool.length);
+      console.assert(this.availableIndices.size >= this.pool.length - noRepeatNum);
+      let indices = this.availableIndices;
+      if (this.state.filterToQuery) {
+        indices = poolResults.map(song => song.index).filter(i => indices.has(i));
+      }
+      // choose a new random song
+      const newSongDefault = newPlaylist[newPlaylist.length - poolResults.length];
+      let newIndexDefault;
+      if (newSongDefault) { newIndexDefault = newSongDefault.index; }
+      const newIndex = randomChoice([...indices]) ?? newIndexDefault;
+      if (newIndex === undefined) { return; } // failsafes
+
       if (this.props.noRepeatNum > 0) {
         let oldIndex;
-        const addBackIndex = newPlaylist.length - this.props.noRepeatNum;
+        const addBackIndex = newPlaylist.length - noRepeatNum;
         if (addBackIndex >= 0) {
           oldIndex = newPlaylist[addBackIndex].index;
         }
@@ -135,30 +182,38 @@ export default class Player extends Component {
   }
 
   playPrev = (num = 1, list) => {
-    // if (list) {
-    //   this.setState({
-    //     selectedList: list,
-    //   });
-    // }
-    console.log(list)
     list = list ?? this.state.selectedList;
-    console.log(list)
     if (list === Lists.PLAYLIST) {
       const newLoc = Math.max(0, this.state.currPlaylistLoc - num);
       this.playFrom(Lists.PLAYLIST, newLoc);
     } else {
-      const newLoc = mod(this.state.currPoolLoc - num, this.poolSize);
+      const poolLoc = Math.ceil(this.state.currPoolLoc);
+      const newLoc = mod(poolLoc - num, this.poolSearchResults().length);
       this.playFrom(Lists.POOL, newLoc);
     }
   }
 
   playCurr = () => {
-    this.playPrev(0); // idk man
+    const list = this.state.selectedList;
+    if (list === Lists.PLAYLIST) {
+      this.playFrom(Lists.PLAYLIST, this.state.currPlaylistLoc);
+    } else {
+      const poolLoc = this.state.currPoolLoc;
+      if (!Number.isInteger(poolLoc)) { return; }
+      this.playFrom(Lists.POOL, poolLoc);
+    }
   }
 
   playNext = (num = 1, list) => {
-    this.playPrev(-num, list);
-    // playFrom buffers every time now
+    list = list ?? this.state.selectedList;
+    if (list === Lists.PLAYLIST) {
+      const newLoc = Math.max(0, this.state.currPlaylistLoc + num);
+      this.playFrom(Lists.PLAYLIST, newLoc);
+    } else {
+      const poolLoc = Math.floor(this.state.currPoolLoc);
+      const newLoc = mod(poolLoc + num, this.poolSearchResults().length);
+      this.playFrom(Lists.POOL, newLoc);
+    }
   }
 
   removeSong = (relativeNum) => { // relative to currSong
@@ -194,6 +249,8 @@ export default class Player extends Component {
   }
 
   render = () => {
+    if (!this.pool) { return <></>; }
+
     console.log(this.state)
     console.log(this.props)
     const maybeUni = (song, property) => {
@@ -206,15 +263,15 @@ export default class Player extends Component {
     const makeCell = (text, onclick, selected) => ({text, onclick, selected});
     
     // determine current song
-    let nowPlaying;
+    console.log(this.nowPlaying);
+    console.log(this.state.currPoolLoc)
     if (this.state.selectedList === Lists.PLAYLIST) {
-      nowPlaying = this.state.playlist[this.state.currPlaylistLoc];
-    } else {
-      nowPlaying = this.pool[this.state.currPoolLoc];
-    }
-    if (nowPlaying === undefined) {
-      return <></>
-    }
+      this.nowPlaying = this.state.playlist[this.state.currPlaylistLoc];
+    } else if (Number.isInteger(this.state.currPoolLoc)) {
+      this.nowPlaying = this.poolSearchResults()[this.state.currPoolLoc];
+    } // else current song is not in current pool view-- do not change
+    if (!this.nowPlaying) { return <></>; }
+    const nowPlaying = this.nowPlaying;
 
     // make playlist entries
     const playlistEntries = (() => {
@@ -255,20 +312,19 @@ export default class Player extends Component {
     })();
 
     // make pool table
-    const poolEntries = ((query) => {
+    const poolEntries = (() => {
       let entries = [];
-      const songs = this.pool.filter(song => song.displayName.toLowerCase().includes(query.toLowerCase()));
-      for (const song of songs) {
-        const onclick = () => this.playFrom(Lists.POOL, song.index);
-        const selected = this.state.selectedList === Lists.POOL && song.index === this.state.currPoolLoc;
+      this.poolSearchResults().forEach((song, index) => {
+        const onclick = () => this.playFrom(Lists.POOL, index);
+        const selected = this.state.selectedList === Lists.POOL && index === this.state.currPoolLoc;
         const cell = makeCell(maybeUni(song, 'displayName'), onclick, selected);
   
         const ponclick = () => { this.insertSong(1, song); };
         const pbutton = makeCell("+", ponclick, selected);
         entries.push([cell, pbutton]);
-      }
+      });
       return entries;
-    })(this.state.poolSearchQuery);
+    })();
 
     return (
       <div className={styles.playerDisplayContainer}>
@@ -282,17 +338,25 @@ export default class Player extends Component {
           />
         </div>
         <div id="display-container" className={styles.displayContainer}>
-          <div className={styles.list}>
-            <label htmlFor="playlist">upcoming songs:</label>
+          <div id="playlist-container" className={styles.list}>
+            <button className={styles.refreshButton} onClick={() => this.rebuffer()}>regenerate</button>
+            <label htmlFor="playlist" id={styles.playlistLabel}>upcoming songs:</label>
             <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
           </div>
-          <div className={styles.list}>
+          <div id="pool-container" className={styles.list}>
+            <SettingInput
+              id='filter-to-query'
+              type='checkbox'
+              onInput={(e) => {
+                this.setState({
+                  filterToQuery: e.target.checked,
+                });
+              }}
+            />
             <SettingInput
               id='search-pool'
               type='text'
-              onKeyUp={(e) => this.setState({
-                poolSearchQuery: e.target.value,
-              })}
+              onKeyUp={(e) => this.onQueryChange(e.target.value)}
             />
             <Table id="pool" entries={poolEntries} maxHeight="360px" />
           </div>

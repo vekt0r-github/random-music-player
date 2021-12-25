@@ -10,10 +10,8 @@
 }
 
 .button {
+  composes: u-button from "../../utilities.css";
   background-color: #ff99e8;
-  width: 100px;
-  height: 30px;
-  border-radius: 15px;
   font-size: 22px;
 }
 

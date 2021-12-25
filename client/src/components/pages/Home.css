@@ -2,11 +2,9 @@
   margin: var(--s);
 }
 
-#startButton {
-  background-color: #4e4;
-  width: 100px;
-  height: 30px;
-  border-radius: 15px;
+.startButton {
+  composes: u-button from "../../utilities.css";
+  background-color: #6e6;
 }
 
 .content {

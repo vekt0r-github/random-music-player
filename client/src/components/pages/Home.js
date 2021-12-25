@@ -140,7 +140,7 @@ export default class Home extends Component {
         <div className={styles.content}>
           <button
             type="button" 
-            id={styles.startButton}
+            className={styles.startButton}
             onClick={this.start}
             >!mp start</button>
         </div>

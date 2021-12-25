@@ -24,5 +24,4 @@ kete
 - sort pool list
 - option to export collection to an osu! subfolder
 - or use api https://github.com/remanifest/s-ul-curl-uploader
-- pool filter functions etc.
 - reimplement scrollIfNeeded for pool box
