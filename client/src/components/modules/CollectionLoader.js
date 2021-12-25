@@ -1,5 +1,8 @@
 import React, { Component } from "react";
 
+import { Buffer } from "buffer";
+import OsuDBParser from "osu-db-parser";
+
 import Table from "./Table.js";
 
 import { post, readFileBinary } from "../../scripts/utils.js";
@@ -11,6 +14,30 @@ const Messages = Object.freeze({
   ERROR: "something went wrong (need an osu! installation root directory)"
 });
 
+/**
+ * uses osu-db-parser to parse osu!.db and collection.db
+ * from selected folder
+ * @param {Object} { osuFile, collectionFile } 
+ * @returns {Object} { osuData, collectionData }, where
+ * osuData = { beatmaps, folder_count, osuver, username }
+ * collectionData = { collection, osuver }
+ */
+const parseDB = ({osuFile, collectionFile}) => {
+  const toBuffer = (fileStr) => {
+    const encoding = 'binary';
+    // const file = new File([fileStr], "");
+    return Buffer.from(fileStr, encoding);
+  }
+
+  // console.log(req.body);
+  const osuBuffer = toBuffer(osuFile);
+  const collectionBuffer = toBuffer(collectionFile);
+  const parser = new OsuDBParser(osuBuffer, collectionBuffer);
+  const osuData = parser.getOsuDBData();
+  const collectionData = parser.getCollectionData();
+  return {osuData, collectionData};
+}
+
 export default class CollectionLoader extends Component {
   /**
    * props
@@ -18,6 +45,7 @@ export default class CollectionLoader extends Component {
    * 
    */
   constructor(props) {
+    console.log(OsuDBParser);
     super(props);
     this.state = {
       status: Messages.NOSELECT,
@@ -42,7 +70,7 @@ export default class CollectionLoader extends Component {
     const osuFile = await getBinaryFile("osu!.db");
     const collectionFile = await getBinaryFile("collection.db");
     
-    const {osuData, collectionData} = await post("/api/parsedb", {osuFile, collectionFile});
+    const {osuData, collectionData} = parseDB({osuFile, collectionFile});
     if (!osuData || !osuData.beatmaps || !collectionData || !collectionData.collection) {
       this.setState({ 
         status: Messages.ERROR,
