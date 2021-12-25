@@ -4,6 +4,7 @@
   "description": "",
   "main": "server/server.js",
   "scripts": {
+    "heroku-postbuild": "npm install && npm run build",
     "hotloader": "webpack serve --config ./webpack.config.js --mode development --port 5000",
     "start": "nodemon --ignore client/",
     "build": "webpack"
@@ -16,6 +17,7 @@
   "license": "ISC",
   "homepage": "",
   "engines": {
+    "npm": "7.x",
     "node": "15.x"
   },
   "dependencies": {
