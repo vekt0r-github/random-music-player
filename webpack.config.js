@@ -81,7 +81,7 @@ module.exports = {
         { from: /favicon.ico/, to: path.resolve(outputDir, 'favicon.ico') }
       ]
     },
-    contentBase: "./client/dist",
+    static: "./client/dist",
     hot: true,
     proxy: {
       "/api": "http://localhost:3000",

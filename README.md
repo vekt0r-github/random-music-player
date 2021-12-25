@@ -24,3 +24,4 @@ kete
 - option to export collection to an osu! subfolder
 - or use api https://github.com/remanifest/s-ul-curl-uploader
 - reimplement scrollIfNeeded for pool box
+- improve performance with many songs
