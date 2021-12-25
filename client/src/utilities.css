@@ -28,9 +28,17 @@ body {
 }
 
 .u-button {
-  width: 100px;
+  width: 120px;
   height: 30px;
   border-radius: 15px;
+  color: black;
+  border-width: 2px;
+  border-style: outset;
+  border-color: #777;
+}
+
+.u-button:active {
+  border-style: inset;
 }
 
 .u-link {

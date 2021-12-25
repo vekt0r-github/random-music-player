@@ -8,6 +8,7 @@
   composes: container;
   background-color: #fbeefb;
   margin: var(--s) 0;
+  width: fit-content;
 }
 
 .playerContainer {
@@ -20,6 +21,7 @@
   composes: container;
   display: flex;
   flex-wrap: wrap;
+  width: fit-content;
 }
 
 .list {
