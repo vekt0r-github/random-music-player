@@ -4,7 +4,6 @@
   "description": "",
   "main": "server/server.js",
   "scripts": {
-    "heroku-postbuild": "npm install && npm run build",
     "hotloader": "webpack serve --config ./webpack.config.js --mode development --port 5000",
     "start": "nodemon --ignore client/",
     "build": "webpack"
@@ -32,8 +31,10 @@
     "connect-ensure-login": "^0.1.1",
     "core-js": "^3.8.1",
     "cross-env": "^7.0.3",
+    "css-loader": "^5.0.1",
     "express": "^4.17.1",
     "express-session": "^1.17.1",
+    "file-loader": "^6.2.0",
     "nodemon": "^2.0.6",
     "osu-db-parser": "^1.0.37",
     "react": "^16.14.0",
@@ -47,8 +48,6 @@
     "webpack-cli": "^4.3.0"
   },
   "devDependencies": {
-    "css-loader": "^5.0.1",
-    "file-loader": "^6.2.0",
     "html-webpack-plugin": "^4.5.0",
     "react-hot-loader": "^4.13.0",
     "webpack-dev-server": "^3.11.1"
