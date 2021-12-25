@@ -69,7 +69,6 @@ export default class Home extends Component {
         });
       });
     } else if (mode === Modes.OSU) {
-      console.log(this.collectionLoader)
       const osuData = this.collectionLoader.current.state;
       if (osuData.selectedCollection === undefined) { return; }
       const collection = osuData.collections[osuData.selectedCollection];

@@ -47,7 +47,6 @@ app.use(express.static(reactPath));
 
 // for all other routes, render index.html and let react router handle it
 app.get("/", (req, res) => {
-  console.log("HI")
   res.sendFile(path.join(reactPath, "index.html"));
 });
 

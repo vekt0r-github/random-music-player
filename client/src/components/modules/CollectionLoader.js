@@ -45,7 +45,6 @@ export default class CollectionLoader extends Component {
    * 
    */
   constructor(props) {
-    console.log(OsuDBParser);
     super(props);
     this.state = {
       status: Messages.NOSELECT,

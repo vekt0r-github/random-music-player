@@ -9,8 +9,6 @@
 
 const express = require("express");
 
-const OsuDBParser = require('osu-db-parser');
-
 // api endpoints: all these paths will be prefixed with "/api/"
 const router = express.Router();
 

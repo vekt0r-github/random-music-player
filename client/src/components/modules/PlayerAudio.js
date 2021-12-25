@@ -49,7 +49,6 @@ export default class PlayerAudio extends Component {
   }
 
   play = () => {
-    console.log(this.player);
     if (this.player) { this.player.play(); }
     else { this.playQueued = true;}
   }

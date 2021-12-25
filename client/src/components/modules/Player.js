@@ -107,8 +107,6 @@ export default class Player extends Component {
     let indices = this.poolSearchResults(newQuery);
     indices = indices.filter(song => song.index <= this.nowPlaying.index);
     let newLoc;
-    console.log(indices)
-    console.log(indices.slice(-1).index, this.nowPlaying.index)
     if (indices.length && indices.slice(-1)[0].index === this.nowPlaying.index) {
       newLoc = indices.length - 1; // on an entry
     } else {
@@ -251,8 +249,6 @@ export default class Player extends Component {
   render = () => {
     if (!this.pool) { return <></>; }
 
-    console.log(this.state)
-    console.log(this.props)
     const maybeUni = (song, property) => {
       let title;
       if (this.props.useUnicode) {
@@ -263,8 +259,6 @@ export default class Player extends Component {
     const makeCell = (text, onclick, selected) => ({text, onclick, selected});
     
     // determine current song
-    console.log(this.nowPlaying);
-    console.log(this.state.currPoolLoc)
     if (this.state.selectedList === Lists.PLAYLIST) {
       this.nowPlaying = this.state.playlist[this.state.currPlaylistLoc];
     } else if (Number.isInteger(this.state.currPoolLoc)) {
