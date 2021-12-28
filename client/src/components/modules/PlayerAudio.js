@@ -77,11 +77,12 @@ export default class PlayerAudio extends Component {
 
     // compute and refresh metadata
     const artist = maybeUni(nowPlaying, 'artist');
-    const title = maybeUni(nowPlaying, 'title') ?? maybeUni(nowPlaying, 'displayName');
+    const displayName = maybeUni(nowPlaying, 'displayName');
+    const title = maybeUni(nowPlaying, 'title') ?? displayName;
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({artist, title});
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrev());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+      navigator.mediaSession.setActionHandler('previoustrack', () => this.props.playPrev());
+      navigator.mediaSession.setActionHandler('nexttrack', () => this.props.playNext());
     }
 
     return (
@@ -96,7 +97,7 @@ export default class PlayerAudio extends Component {
           text if audio doesn't work
         </audio>
         <div className={styles.nowPlaying}>
-          now playing: {artist ? `${artist} - ${title}` : title}
+          now playing: {displayName}
         </div>
         <div id="player-buttons">
           <button
