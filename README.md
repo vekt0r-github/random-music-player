@@ -7,6 +7,7 @@ modes currently supported:
 - folder select: lets user select a local folder; recursively includes all audio files
 - osu! collection: select your osu! folder, then pick one of your collections from the list
   - note: all song folders with a tilde character ('~') seem to be inaccessible with the File System Access API, so these songs are silently removed :(
+  - note: there's something weird with ID3 tags when using write metadata option in downloading a collection
 
 ## to run locally (in development mode)
 

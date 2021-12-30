@@ -1,7 +1,10 @@
 import React, { Component } from "react";
 
+import SettingInput from "../modules/SettingInput.js";
+
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
+import MP3Tag from "mp3tag.js";
 import OsuDBParser from "osu-db-parser";
 
 import Table from "./Table.js";
@@ -55,6 +58,7 @@ export default class CollectionLoader extends Component {
       beatmaps: undefined,
       collections: undefined,
       selectedCollection: undefined,
+      useMetadata: true, // for download
     };
   }
 
@@ -153,9 +157,24 @@ export default class CollectionLoader extends Component {
     if (pool === null) { return; }
     let zip = new JSZip();
     await Promise.all(pool.map(async (song) => {
+      const maybeUni = (prop) => getMaybeUnicode(song, prop, this.props.useUnicode);
       const blob = await fetch(song.path).then(r => r.blob());
-      const displayName = getMaybeUnicode(song, 'displayName', this.props.useUnicode);
-      zip.file(`${displayName}.mp3`, blob);
+      const fn = `${maybeUni('displayName')}.mp3`;
+      let file = new File([blob], fn);
+      if (this.state.useMetadata) { // write metadata
+        const bin = await readFileBinary(file);
+        const mp3tag = new MP3Tag(toBuffer(bin), /* verbose= */ false);
+        mp3tag.read();
+        if (mp3tag.error !== '') {
+          console.log(mp3tag.error);
+        } else { 
+          mp3tag.tags.title = maybeUni('title');
+          mp3tag.tags.artist = maybeUni('artist');
+          const buf = mp3tag.save();
+          file = new File([buf], fn); // convert buffer back into file
+        }
+      }
+      zip.file(fn, file);
     }));
     const zipContent = await zip.generateAsync({type:"blob"})
     const collection = this.state.collections[this.state.selectedCollection];
@@ -184,6 +203,15 @@ export default class CollectionLoader extends Component {
           <div id="collection-select-container">
             <label htmlFor="collection-select">collections:</label>
             <div id="collection-select">{collectionSelectTable}</div>
+            <SettingInput
+              id='write-metadata-to-audio-files'
+              type='checkbox'
+              defaultChecked={this.state.useMetadata}
+              onChange={(e) => {
+                this.setState({
+                  useMetadata: e.target.checked,
+                });
+              }}/>
             <button
               type="button"
               aria-describedby="dl-desc"

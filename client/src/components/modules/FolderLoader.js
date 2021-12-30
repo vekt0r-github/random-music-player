@@ -23,7 +23,7 @@ export default class Home extends Component {
     super(props);
     this.state = {
       status: Messages.IDLE,
-      useMetadata: true,
+      useMetadata: false,
     };
 
     this.fileSelect = React.createRef();
@@ -77,7 +77,7 @@ export default class Home extends Component {
         <SettingInput
           id='get-metadata-from-audio-files'
           type='checkbox'
-          defaultChecked={true}
+          defaultChecked={this.state.useMetadata}
           onChange={(e) => {
             this.setState({
               useMetadata: e.target.checked,

@@ -123,7 +123,7 @@ export default class Home extends Component {
           <SettingInput
             id='use-unicode'
             type='checkbox'
-            defaultChecked={true}
+            defaultChecked={this.state.useUnicode}
             onChange={(e) => {
               this.setState({
                 useUnicode: e.target.checked,

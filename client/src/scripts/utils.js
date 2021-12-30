@@ -43,6 +43,11 @@ export const getMaybeUnicode = (song, property, useUnicode) => {
   return value ?? song[property];
 };
 
+/**
+ * async function to read file as binary
+ * @param {File | Blob} file 
+ * @returns promise containing binary output
+ */
 export const readFileBinary = (file) => {
   return new Promise((resolve, reject) => {
     let reader = new FileReader();
