@@ -1,12 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600&family=Noto+Serif+JP&display=swap");
 
 :root {
-  --primary: #396dff;
-  --primary--dim: #6987db;
+  --link: #396dff;
+  --linkhover: #6987db;
   --darkgrey: #d4d4d4;
   --medgrey: #e0e0e0;
   --grey: #f7f7f7;
-  --white: #fff;
 
   --xxxs: 1px;
   --xxs: 2px;
@@ -27,6 +26,25 @@ body {
   font-weight: 400;
 }
 
+/* https://inclusive-components.design/tooltips-toggletips/ */
+[role="tooltip"] {
+  display: none;
+  position: absolute;
+  max-width: 240px;
+  width: fit-content;
+  border: 1px solid black;
+  font-size: 14px;
+  margin: var(--xs);
+  padding: var(--xs);
+  background-color: beige;
+}
+
+button:hover + [role="tooltip"],  
+button:focus + [role="tooltip"] {  
+  display: inline-block;
+}
+
+/* utility classes */
 .u-button {
   width: 120px;
   height: 30px;
@@ -42,11 +60,18 @@ body {
 }
 
 .u-link {
-  color: var(--primary);
+  color: var(--link);
   text-decoration: none;
   cursor: pointer;
 }
 
 .u-link:hover {
-  color: var(--primary--dim);
+  color: var(--linkhover);
 }
+
+.u-container {
+  border-radius: var(--m);
+  padding: var(--s);
+  width: fit-content;
+}
+

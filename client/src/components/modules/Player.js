@@ -4,7 +4,7 @@ import PlayerAudio from "../modules/PlayerAudio.js";
 import SettingInput from "../modules/SettingInput.js";
 import Table from "./Table.js";
 
-import { randomChoice, mod } from "../../scripts/utils.js";
+import { randomChoice, mod, getMaybeUnicode } from "../../scripts/utils.js";
 
 import styles from "./Player.css";
 
@@ -64,7 +64,15 @@ export default class Player extends Component {
 
   reset = () => {
     this.pool = this.props.pool.map((song, index) => {
-      return {...song, index}; 
+      const maybeUni = (property) => (useUnicode) => 
+        getMaybeUnicode(song, property, useUnicode);
+      return {
+        ...song,
+        index: index,
+        getArtist: maybeUni('artist'),
+        getTitle: maybeUni('title'),
+        getDisplayName: maybeUni('displayName'),
+      }; 
     });
     this.availableIndices = new Set(this.props.pool.keys()),
     this.playerInitialized = false;
@@ -249,13 +257,6 @@ export default class Player extends Component {
   render = () => {
     if (!this.pool) { return <></>; }
 
-    const maybeUni = (song, property) => {
-      let title;
-      if (this.props.useUnicode) {
-        title = song[`${property}Unicode`];
-      }
-      return title ?? song[property];
-    }
     const makeCell = (text, onclick, selected) => ({text, onclick, selected});
     
     // determine current song
@@ -277,7 +278,7 @@ export default class Player extends Component {
         let onclick = () => {};
         let selected = false;
         if (i >= 0 && i < this.state.playlist.length) {
-          title = maybeUni(this.state.playlist[i], 'displayName');
+          title = this.state.playlist[i].getDisplayName(this.props.useUnicode);
           const diff = i - this.state.currPlaylistLoc;
           if (diff === 0) {
             selected = this.state.selectedList === Lists.PLAYLIST;
@@ -311,7 +312,7 @@ export default class Player extends Component {
       this.poolSearchResults().forEach((song, index) => {
         const onclick = () => this.playFrom(Lists.POOL, index);
         const selected = this.state.selectedList === Lists.POOL && index === this.state.currPoolLoc;
-        const cell = makeCell(maybeUni(song, 'displayName'), onclick, selected);
+        const cell = makeCell(song.getDisplayName(this.props.useUnicode), onclick, selected);
   
         const ponclick = () => { this.insertSong(1, song); };
         const pbutton = makeCell("+", ponclick, selected);

@@ -1,11 +1,20 @@
 import React, { Component } from "react";
 
-import { Buffer } from "buffer";
+import { saveAs } from "file-saver";
+import JSZip from "jszip";
 import OsuDBParser from "osu-db-parser";
 
 import Table from "./Table.js";
 
-import { post, readFileBinary } from "../../scripts/utils.js";
+import { 
+  addDisplayName,
+  getMaybeUnicode,
+  readFileBinary,
+  toBuffer,
+  getAudioHandle
+} from "../../scripts/utils.js";
+
+import styles from "./CollectionLoader.css";
 
 const Messages = Object.freeze({
   NOSELECT: "no directory selected",
@@ -23,12 +32,6 @@ const Messages = Object.freeze({
  * collectionData = { collection, osuver }
  */
 const parseDB = ({osuFile, collectionFile}) => {
-  const toBuffer = (fileStr) => {
-    const encoding = 'binary';
-    // const file = new File([fileStr], "");
-    return Buffer.from(fileStr, encoding);
-  }
-
   // console.log(req.body);
   const osuBuffer = toBuffer(osuFile);
   const collectionBuffer = toBuffer(collectionFile);
@@ -42,7 +45,7 @@ export default class CollectionLoader extends Component {
   /**
    * props
    * onCollectionsLoaded: (beatmaps, collections) => {}
-   * 
+   * useUnicode: bool
    */
   constructor(props) {
     super(props);
@@ -98,17 +101,68 @@ export default class CollectionLoader extends Component {
     });
   };
 
-  isLoaded() {
+  isLoaded = () => {
     return this.state.status === Messages.LOADED;
   }
 
-  selectCollection(index) {
+  selectCollection = (index) => {
     this.setState({
       selectedCollection: index,
     });
   }
 
-  render() {
+  /**
+   * get all beatmaps in selected collection
+   * @returns list of beatmap objects
+   */
+  selectedBeatmaps = () => {
+    if (this.state.selectedCollection === undefined) { return null; }
+    const collection = this.state.collections[this.state.selectedCollection];
+    const hashes = new Set(collection.beatmapsMd5);
+    return this.state.beatmaps.filter((beatmap) => hashes.has(beatmap.md5));
+  }
+
+  /**
+   * makes the pool at the current time, with selected collection
+   * @returns pool, as [Song]
+   */
+  makePool = async () => {
+    const beatmaps = this.selectedBeatmaps();
+    if (beatmaps === null) { return; }
+    const pool = await Promise.all(beatmaps.map(async (beatmap) => {
+      const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
+      if (!handle) return null; // silently remove beatmap
+      const url = await handle.getFile().then(URL.createObjectURL);
+      const artistUnicode = beatmap.artist_name_unicode;
+      const titleUnicode = beatmap.song_title_unicode;
+      const artist = beatmap.artist_name;
+      const title = beatmap.song_title;
+      return addDisplayName({
+        path: url,
+        artist, title, artistUnicode, titleUnicode,
+      });
+    }));
+    return pool.filter(song => song !== null);
+  }
+
+  /**
+   * download all beatmaps in selected collection as .zip
+   */
+  download = async () => {
+    const pool = await this.makePool();
+    if (pool === null) { return; }
+    let zip = new JSZip();
+    await Promise.all(pool.map(async (song) => {
+      const blob = await fetch(song.path).then(r => r.blob());
+      const displayName = getMaybeUnicode(song, 'displayName', this.props.useUnicode);
+      zip.file(`${displayName}.mp3`, blob);
+    }));
+    const zipContent = await zip.generateAsync({type:"blob"})
+    const collection = this.state.collections[this.state.selectedCollection];
+    saveAs(zipContent, `${collection.name}.zip`);
+  }
+
+  render = () => {
     // make the collection table (keeping the outside scroll container in the same place)
     let collectionSelectTable;
     if (this.isLoaded()) {
@@ -121,7 +175,7 @@ export default class CollectionLoader extends Component {
     }
 
     return (
-      <div id="osu-container">
+      <div id="osu-container" className={styles.loader}>
         <div id="folder-select-container">
           <button type="button" onClick={this.onOsuSelectClick}>select osu! folder</button>
           <span> {this.state.status}</span>
@@ -130,8 +184,18 @@ export default class CollectionLoader extends Component {
           <div id="collection-select-container">
             <label htmlFor="collection-select">collections:</label>
             <div id="collection-select">{collectionSelectTable}</div>
+            <button
+              type="button"
+              aria-describedby="dl-desc"
+              className={styles.downloadButton}
+              onClick={this.download}
+              >download</button>
+            <div role="tooltip" id="dl-desc" className={styles.tooltip}>
+              download all songs in collection as .zip 
+              (filenames affected by "use unicode" checkbox)
+            </div> 
           </div> : null}
       </div>
-    )
+    );
   }
 }

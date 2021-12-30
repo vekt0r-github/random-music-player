@@ -1,0 +1,4 @@
+.loader {
+  composes: u-container from "../../utilities.css";
+  background-color: #e4e4e4;
+}

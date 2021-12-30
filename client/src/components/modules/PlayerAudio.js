@@ -65,20 +65,12 @@ export default class PlayerAudio extends Component {
   }
 
   render() {
-    const maybeUni = (song, property) => {
-      let title;
-      if (this.props.useUnicode) {
-        title = song[`${property}Unicode`];
-      }
-      return title ?? song[property];
-    }
-
     const nowPlaying = this.props.nowPlaying;
 
     // compute and refresh metadata
-    const artist = maybeUni(nowPlaying, 'artist');
-    const displayName = maybeUni(nowPlaying, 'displayName');
-    const title = maybeUni(nowPlaying, 'title') ?? displayName;
+    const artist = nowPlaying.getArtist(this.props.useUnicode);
+    const displayName = nowPlaying.getDisplayName(this.props.useUnicode);
+    const title = nowPlaying.getTitle(this.props.useUnicode) ?? displayName;
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({artist, title});
       navigator.mediaSession.setActionHandler('previoustrack', () => this.props.playPrev());

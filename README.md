@@ -19,9 +19,8 @@ modes currently supported:
 ## todo
 kete
 - move songs around
-- improve textboxes
 - sort pool list
-- option to export collection to an osu! subfolder
 - or use api https://github.com/remanifest/s-ul-curl-uploader
 - reimplement scrollIfNeeded for pool box
 - improve performance with many songs
+- make sure revokeObjectURL is called at the end too

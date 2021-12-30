@@ -1,0 +1,13 @@
+.downloadButton {
+  composes: u-button from "../../utilities.css";
+  margin-top: var(--xs);
+}
+
+.tooltip {
+  transform: translate(0, calc(15px - var(--xs) - 50%));
+}
+
+.loader {
+  composes: u-container from "../../utilities.css";
+  background-color: #e4e4e4;
+}

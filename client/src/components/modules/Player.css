@@ -1,24 +1,18 @@
-.container {
-  border-radius: var(--m);
-  padding: var(--s);
-  width: fit-content;
-}
-
 .playerDisplayContainer {
-  composes: container;
+  composes: u-container from "../../utilities.css";
   background-color: #fbeefb;
   margin: var(--s) 0;
   width: fit-content;
 }
 
 .playerContainer {
-  composes: container;
+  composes: u-container from "../../utilities.css";
   background-color: #ffd3f3;
   margin-top: 0;
 }
 
 .displayContainer {
-  composes: container;
+  composes: u-container from "../../utilities.css";
   display: flex;
   flex-wrap: wrap;
   width: fit-content;

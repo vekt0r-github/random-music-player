@@ -1,10 +1,9 @@
 import React, { Component } from "react";
-import CollectionLoader from "../modules/CollectionLoader.js";
 
+import FolderLoader from "../modules/FolderLoader.js";
+import CollectionLoader from "../modules/CollectionLoader.js";
 import Player from "../modules/Player.js";
 import SettingInput from "../modules/SettingInput.js";
-
-import { splitFilename, getAudioHandle } from "../../scripts/utils.js";
 
 import defaultPool from '../../data/songs.json';
 
@@ -36,7 +35,7 @@ export default class Home extends Component {
       useUnicode: true,
     };
 
-    this.fileSelect = React.createRef();
+    this.folderLoader = React.createRef();
     this.collectionLoader = React.createRef();
     this.noRepeatNumInput = React.createRef();
   }
@@ -57,40 +56,11 @@ export default class Home extends Component {
     if (mode === Modes.DEFAULT) {
       pool = defaultPool;
     } else if (mode === Modes.FOLDER) {
-      const files = [...this.fileSelect.current.files];
-      files.forEach((file) => {
-        const {name, ext} = splitFilename(file.name);
-        if (!["mp3", "wav", "flac"].includes(ext)) return;
-        const url = URL.createObjectURL(file);
-        activeURLs.push(url);
-        pool.push({
-          path: url,
-          displayName: name,
-        });
-      });
+      pool = await this.folderLoader.current.makePool();
+      activeURLs = pool.map(song => song.url);
     } else if (mode === Modes.OSU) {
-      const osuData = this.collectionLoader.current.state;
-      if (osuData.selectedCollection === undefined) { return; }
-      const collection = osuData.collections[osuData.selectedCollection];
-      const hashes = new Set(collection.beatmapsMd5);
-      const beatmaps = osuData.beatmaps.filter((beatmap) => hashes.has(beatmap.md5));
-      const promises = beatmaps.map(async (beatmap) => {
-        const handle = await getAudioHandle(osuData.osuDirectoryHandle, beatmap);
-        if (!handle) return null; // silently remove beatmap
-        const url = await handle.getFile().then(URL.createObjectURL);
-        const artistUnicode = beatmap.artist_name_unicode;
-        const titleUnicode = beatmap.song_title_unicode;
-        const artist = beatmap.artist_name;
-        const title = beatmap.song_title;
-        activeURLs.push(url);
-        pool.push({
-          path: url,
-          displayName: `${artist} - ${title}`,
-          displayNameUnicode: artistUnicode ? `${artistUnicode} - ${titleUnicode}` : undefined,
-          artist, title, artistUnicode, titleUnicode,
-        });
-      });
-      await Promise.all(promises);
+      pool = await this.collectionLoader.current.makePool();
+      activeURLs = pool.map(song => song.url);
     }
     const noRepeatNum = Math.min(this.state.noRepeatNum, pool.length - 1);
     this.noRepeatNumInput.current.value = noRepeatNum;
@@ -131,11 +101,14 @@ export default class Home extends Component {
           </select>
         </div>
         {this.state.mode === Modes.FOLDER ? 
-          <div className={styles.content}>
-            <input type="file" accept="image/*" webkitdirectory="true" ref={this.fileSelect} />
-          </div> : null}
+          <FolderLoader
+            ref={this.folderLoader}
+            /> : null}
         {this.state.mode === Modes.OSU ?
-          <CollectionLoader ref={this.collectionLoader} className={styles.content}/> : null}
+          <CollectionLoader
+            ref={this.collectionLoader}
+            useUnicode={this.state.useUnicode}
+            /> : null}
         <div className={styles.content}>
           <button
             type="button" 
