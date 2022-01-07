@@ -1,2 +1,3 @@
 client/dist/bundle.*
 node_modules/
+ignore/

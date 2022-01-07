@@ -58,7 +58,7 @@ export default class CollectionLoader extends Component {
       beatmaps: undefined,
       collections: undefined,
       selectedCollection: undefined,
-      useMetadata: true, // for download
+      useMetadata: false, // for download
     };
   }
 
