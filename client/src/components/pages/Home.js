@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 
+import SulLoader from "../modules/SulLoader.js";
 import FolderLoader from "../modules/FolderLoader.js";
 import CollectionLoader from "../modules/CollectionLoader.js";
 import Player from "../modules/Player.js";
@@ -12,6 +13,7 @@ import styles from "./Home.css";
 
 const Modes = Object.freeze({
   DEFAULT: "default",
+  SUL: "s-ul",
   FOLDER: "folder",
   OSU: "osu",
 });
@@ -24,7 +26,7 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      mode: Modes.DEFAULT,
+      mode: Modes.SUL,
       activeURLs: [], // folder select
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
@@ -35,6 +37,7 @@ export default class Home extends Component {
       useUnicode: true,
     };
 
+    this.sulLoader = React.createRef();
     this.folderLoader = React.createRef();
     this.collectionLoader = React.createRef();
     this.noRepeatNumInput = React.createRef();
@@ -55,6 +58,9 @@ export default class Home extends Component {
     const mode = this.state.mode;
     if (mode === Modes.DEFAULT) {
       pool = defaultPool;
+    } else if (mode === Modes.SUL) {
+      pool = await this.sulLoader.current.makePool();
+      activeURLs = pool.map(song => song.url);
     } else if (mode === Modes.FOLDER) {
       pool = await this.folderLoader.current.makePool();
       activeURLs = pool.map(song => song.url);
@@ -96,10 +102,15 @@ export default class Home extends Component {
         <div className={styles.content}>
           <select id={styles.modes} value={this.state.mode} onChange={this.onModeChange}>
             <option value={Modes.DEFAULT}>default songs</option>
+            <option value={Modes.SUL}>s-ul songs</option>
             <option value={Modes.FOLDER}>folder select</option>
             <option value={Modes.OSU}>osu! collection</option>
           </select>
         </div>
+        {this.state.mode === Modes.SUL ? 
+          <SulLoader
+            ref={this.sulLoader}
+            /> : null}
         {this.state.mode === Modes.FOLDER ? 
           <FolderLoader
             ref={this.folderLoader}

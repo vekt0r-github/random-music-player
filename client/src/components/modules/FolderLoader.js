@@ -4,7 +4,12 @@ import SettingInput from "../modules/SettingInput.js";
 
 import MP3Tag from "mp3tag.js";
 
-import { splitFilename, readFileBinary, toBuffer } from "../../scripts/utils.js";
+import { 
+  splitFilename, 
+  readFileBinary, 
+  toBuffer, 
+  isAudioExtension, 
+} from "../../scripts/utils.js";
 
 import styles from "./FolderLoader.css";
 
@@ -15,9 +20,9 @@ const Messages = Object.freeze({
 });
 
 /**
- * Define the "Home" component as a class.
+ * Define the "FolderLoader" component as a class.
  */
-export default class Home extends Component {
+export default class FolderLoader extends Component {
   // makes props available in this component
   constructor(props) {
     super(props);
@@ -38,7 +43,7 @@ export default class Home extends Component {
     const files = [...this.fileSelect.current.files];
     const pool = await Promise.all(files.map(async (file) => {
       const {name, ext} = splitFilename(file.name);
-      if (!["mp3", "wav", "flac"].includes(ext)) return null;
+      if (!isAudioExtension(ext)) { return null; }
       const url = URL.createObjectURL(file);
       let song = {
         path: url,
