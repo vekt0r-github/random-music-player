@@ -13,27 +13,16 @@
 | - Actually starts the webserver
 */
 
-// validator runs some basic checks to make sure you've set everything up correctly
-// this is a tool provided by staff, so you don't need to worry about it
-const validator = require("./validator");
-validator.checkSetup();
-
 //import libraries needed for the webserver to work!
-const http = require("http");
 const express = require("express"); // backend framework for our node server.
-const bodyParser = require('body-parser');
-const session = require("express-session"); // library that stores info about each connected user
+// const bodyParser = require('body-parser');
+// const session = require("express-session"); // library that stores info about each connected user
 const path = require("path"); // provide utilities for working with file and directory paths
 
 const api = require("./api");
 
-// socket stuff
-const socketManager = require("./server-socket");
-
 // create a new express server
 const app = express();
-app.use(bodyParser.json({limit: 2**30, type: ['application/json', 'text/plain']}));
-app.use(validator.checkRoutes);
 
 // allow us to process POST requests
 app.use(express.json());
@@ -68,9 +57,6 @@ app.use((err, req, res, next) => {
 
 // hardcode port to 3000 for now
 const port = process.env.PORT || 3000;
-const server = http.Server(app);
-socketManager.init(server);
-
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`Server running on port: ${port}`);
 });

@@ -26,7 +26,7 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      mode: Modes.SUL,
+      mode: Modes.DEFAULT,
       activeURLs: [], // folder select
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
