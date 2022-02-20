@@ -26,3 +26,4 @@ kete
 - reimplement scrollIfNeeded for pool box
 - improve performance with many songs
 - make sure revokeObjectURL is called at the end too
+- for some reason clicking on playlist curr bug is back

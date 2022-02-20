@@ -50,7 +50,7 @@ export default class SulLoader extends Component {
 
   render = () => {
     return (
-      <div>
+      <form onSubmit={(e) => e.preventDefault()}>
         <SettingInput
           id='username'
           type='input'
@@ -68,7 +68,8 @@ export default class SulLoader extends Component {
             });
           }}/>
         <span>{this.state.status}</span>
-      </div>
+        <input type="submit" style={{display: "none"}} />
+      </form>
     );
   }
 }

@@ -96,6 +96,16 @@ export const scrollIfNeeded = (element, container) => {
 
 export const isAudioExtension = (ext) => ["mp3", "wav", "flac"].includes(ext);
 
+// ex: formatParams({ some_key: "some_value", a: "b"}) => "some_key=some_value&a=b"
+function formatParams(params) {
+  // iterate of all the keys of params as an array,
+  // map it to a new array of URL string encoded key,value pairs
+  // join all the url params using an ampersand (&).
+  return Object.keys(params)
+    .map((key) => key + "=" + encodeURIComponent(params[key]))
+    .join("&");
+}
+
 // convert a fetch result to a JSON object with error handling for fetch and json errors
 function convertToJSON(res) {
   if (!res.ok) {
@@ -110,6 +120,18 @@ function convertToJSON(res) {
       return res.text().then((text) => {
         throw `API request's result could not be converted to a JSON object: \n${text}`;
       });
+    });
+}
+
+// Helper code to make a get request. Default parameter of empty JSON Object for params.
+// Returns a Promise to a JSON Object.
+export function get(endpoint, params = {}) {
+  const fullPath = endpoint + "?" + formatParams(params);
+  return fetch(fullPath)
+    .then(convertToJSON)
+    .catch((error) => {
+      // give a useful error message
+      throw `GET request to ${fullPath} failed with error:\n${error}`;
     });
 }
 

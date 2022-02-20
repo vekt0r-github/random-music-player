@@ -39,7 +39,7 @@ export default class PlayerAudio extends Component {
     this.player = ReactDOM.findDOMNode(element);
     if (!this.player) { return; }
     if (!this.playerInitialized) {
-      this.player.volume = 0.2;
+      this.player.volume = 0.1;
       this.playerInitialized = true;
     }
     if (this.playQueued) {
