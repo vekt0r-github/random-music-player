@@ -26,6 +26,8 @@ const Messages = Object.freeze({
   ERROR: "something went wrong (need an osu! installation root directory)"
 });
 
+const makeLoadingMsg = (fn, progress) => `${Messages.LOADING} ('${fn}' ${(progress*100).toFixed(1)}%)`
+
 /**
  * uses osu-db-parser to parse osu!.db and collection.db
  * from selected folder
@@ -71,7 +73,9 @@ export default class CollectionLoader extends Component {
     const getBinaryFile = async (fn) => {
       const fileHandle = await osuDirectoryHandle.getFileHandle(fn);
       const file = await fileHandle.getFile();
-      return await readFileBinary(file);
+      return await readFileBinary(file, (progress) => {
+        this.setState({status: makeLoadingMsg(fn, progress)});
+      });
     }
     const osuFile = await getBinaryFile("osu!.db");
     const collectionFile = await getBinaryFile("collection.db");

@@ -46,16 +46,62 @@ export const getMaybeUnicode = (song, property, useUnicode) => {
 /**
  * async function to read file as binary
  * @param {File | Blob} file 
+ * @param {(number) => void} onProgress
  * @returns promise containing binary output
  */
-export const readFileBinary = (file) => {
+export const readFileBinary = (file, onProgress) => {
   return new Promise((resolve, reject) => {
-    let reader = new FileReader();
-    reader.onload = () => {
-      resolve(reader.result);
-    };
-    reader.onerror = reject;
-    reader.readAsBinaryString(file);
+    // var form = new FormData();
+    // form.append('file', file);
+    // const url = URL.createObjectURL(file);
+    // var xhr = new XMLHttpRequest();
+    // xhr.open('GET', url);
+    // xhr.onload = function () {
+    //   if (xhr.status >= 200 && xhr.status < 300) {
+    //     resolve(toBuffer(xhr.response));
+    //   } else {
+    //     reject({
+    //       status: xhr.status,
+    //       statusText: xhr.statusText
+    //     });
+    //   }
+    // };
+    // xhr.onerror = function () {
+    //   reject({
+    //     status: xhr.status,
+    //     statusText: xhr.statusText
+    //   });
+    // };
+    // xhr.send();
+    
+    const fileSize = file.size;
+    const chunkSize = 1024 * 1024; // bytes
+    let offset = 0;
+    let outputBuffer = toBuffer("");
+
+    const chunkReaderBlock = (_offset, length, _file) => {
+      const r = new FileReader();
+      const blob = _file.slice(_offset, length + _offset);
+      r.onload = (evt) => {
+        if (evt.target.error == null) {
+          offset += chunkSize;
+          outputBuffer = Buffer.concat([outputBuffer, toBuffer(evt.target.result)]);
+          onProgress(offset / fileSize);
+        } else {
+          reject("Read error: " + evt.target.error);
+          return;
+        }
+        if (offset >= fileSize) {
+          resolve(outputBuffer);
+          return;
+        }
+        chunkReaderBlock(offset, chunkSize, file); // next chunk
+      };
+      r.readAsBinaryString(blob);
+    }
+
+    // now let's start the read with the first block
+    chunkReaderBlock(offset, chunkSize, file);
   });
 };
 
