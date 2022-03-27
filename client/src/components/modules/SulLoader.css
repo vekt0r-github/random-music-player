@@ -7,8 +7,16 @@
   margin-left: var(--s);
 }
 
-.tooltip {
-  transform: translate(0, calc(15px - var(--xs) - 50%));
+.status {
+  display: inline-block;
+}
+
+.downloadButton + .status {
+  margin-left: var(--s);
+}
+
+div + .status {
+  margin-top: var(--xs);
 }
 
 .loader {

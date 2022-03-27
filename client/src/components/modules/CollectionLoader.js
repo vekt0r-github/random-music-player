@@ -37,7 +37,6 @@ const makeLoadingMsg = (fn, progress) => `${Messages.LOADING} ('${fn}' ${(progre
  * collectionData = { collection, osuver }
  */
 const parseDB = ({osuFile, collectionFile}) => {
-  // console.log(req.body);
   const osuBuffer = toBuffer(osuFile);
   const collectionBuffer = toBuffer(collectionFile);
   const parser = new OsuDBParser(osuBuffer, collectionBuffer);
@@ -156,7 +155,7 @@ export default class CollectionLoader extends Component {
   /**
    * download all beatmaps in selected collection as .zip
    */
-  download = async () => {
+  downloadMusic = async () => {
     const pool = await this.makePool();
     if (pool === null) { return; }
     let zip = new JSZip();
@@ -180,9 +179,19 @@ export default class CollectionLoader extends Component {
       }
       zip.file(fn, file);
     }));
-    const zipContent = await zip.generateAsync({type:"blob"})
+    const zipContent = await zip.generateAsync({ type: "blob" })
     const collection = this.state.collections[this.state.selectedCollection];
     saveAs(zipContent, `${collection.name}.zip`);
+  }
+
+  downloadMetadata = async () => {
+    const pool = await this.makePool();
+    pool.map((song) => {
+      delete song.path; // for creating .json
+    });
+    const poolFn = "songs.json";
+    const poolFile = new File([JSON.stringify(pool, null, 4)], poolFn, {type: "text/json"});
+    saveAs(poolFile, poolFn);
   }
 
   render = () => {
@@ -216,12 +225,20 @@ export default class CollectionLoader extends Component {
                   useMetadata: e.target.checked,
                 });
               }}/>
-            <button
-              type="button"
-              aria-describedby="dl-desc"
-              className={styles.downloadButton}
-              onClick={this.download}
-              >download</button>
+            <div>
+              <button
+                type="button"
+                aria-describedby="dl-desc"
+                className={styles.downloadButton}
+                onClick={this.downloadMusic}
+                >download</button>
+              <button
+                type="button"
+                aria-describedby="dl-desc"
+                className={styles.downloadButton}
+                onClick={this.downloadMetadata}
+                >dl data file</button>
+            </div>
             <div role="tooltip" id="dl-desc" className={styles.tooltip}>
               download all songs in collection as .zip 
               (filenames affected by "use unicode" checkbox)
