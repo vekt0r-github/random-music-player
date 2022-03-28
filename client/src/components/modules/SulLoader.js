@@ -67,6 +67,8 @@ export default class SulLoader extends Component {
         const hasUrls = pool.every((song) => song.path);
         if (hasUrls) {
           this.setState({
+            status: Messages.LOADED,
+            pool: pool,
             poolLink: song.url,
           });
           dataFileStatus = "exists";
@@ -127,6 +129,7 @@ export default class SulLoader extends Component {
         <SettingInput
           id='data-file-link'
           type='input'
+          value={this.state.poolLink}
           onChange={(e) => {
             this.setState({
               poolLink: e.target.value,
