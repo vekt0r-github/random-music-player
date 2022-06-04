@@ -1,4 +1,4 @@
-# randomMusicPlayer
+# random-music-player
 
 site which currently plays audio (.mp3/.wav/.flac) files at random
 
@@ -34,3 +34,6 @@ kete
 - improve performance with many songs
 - make sure revokeObjectURL is called at the end too
 - for some reason clicking on playlist curr bug is back
+- better search (word split)
+- react state on mp start
+- +- buttons on timer

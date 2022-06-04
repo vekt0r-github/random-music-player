@@ -85,6 +85,7 @@ export default class PlayerAudio extends Component {
           src={nowPlaying.path}
           onError={() => this.props.playNext()}
           onEnded={() => this.autoplayNext()}
+          type="audio/mpeg"
           controls>
           text if audio doesn't work
         </audio>
