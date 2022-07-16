@@ -199,8 +199,8 @@ export default class Player extends Component {
     }
   }
 
-  playCurr = () => {
-    const list = this.state.selectedList;
+  playCurr = (list) => {
+    list = list ?? this.state.selectedList;
     if (list === Lists.PLAYLIST) {
       this.playFrom(Lists.PLAYLIST, this.state.currPlaylistLoc);
     } else {
@@ -283,7 +283,7 @@ export default class Player extends Component {
           if (diff === 0) {
             selected = this.state.selectedList === Lists.PLAYLIST;
             if (!selected) {
-              onclick = () => this.playCurr();
+              onclick = () => this.playCurr(Lists.PLAYLIST);
             }
           } else {
             onclick = () => {
