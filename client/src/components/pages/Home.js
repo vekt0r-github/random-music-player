@@ -4,9 +4,10 @@ import SulLoader from "../modules/SulLoader.js";
 import FolderLoader from "../modules/FolderLoader.js";
 import CollectionLoader from "../modules/CollectionLoader.js";
 import Player from "../modules/Player.js";
-import SettingInput from "../modules/SettingInput.js";
 
 import defaultPool from '../../data/songs.json';
+
+import { IntegerInput, WithLabel } from "../../utils/components.js";
 
 import "../../utilities.css";
 import styles from "./Home.css";
@@ -69,7 +70,7 @@ export default class Home extends Component {
       activeURLs = pool.map(song => song.url);
     }
     const noRepeatNum = Math.min(this.state.noRepeatNum, pool.length - 1);
-    this.noRepeatNumInput.current.value = noRepeatNum;
+    this.noRepeatNumInput.current.setCurrValue(noRepeatNum);
     this.setState({
       activeURLs: activeURLs,
       pool: pool,
@@ -80,19 +81,16 @@ export default class Home extends Component {
   render = () => {
     const makeNumberSettingField = (prop, ref) => {
       return (
-        <SettingInput
-          ref={ref}
-          id={prop.replace(/([A-Z])/g, "-$1").toLowerCase()}
-          type='text'
-          defaultValue={this.state[prop]}
-          onInput={(e) => {
-            const value = parseInt(e.target.value);
-            if (!isNaN(value)) {
+        <WithLabel id={prop.replace(/([A-Z])/g, "-$1").toLowerCase()}>
+          <IntegerInput
+            ref={ref}
+            defaultValue={this.state[prop]}
+            onValidInput={(value) => {
               this.setState({
                 [prop]: value,
               });
-            }
-          }}/>
+            }} />
+        </WithLabel>
       );
     };
 
@@ -131,15 +129,17 @@ export default class Home extends Component {
           {makeNumberSettingField('noRepeatNum', this.noRepeatNumInput)}
           {makeNumberSettingField('rowsBefore')}
           {makeNumberSettingField('rowsAfter')}
-          <SettingInput
-            id='use-unicode'
-            type='checkbox'
-            defaultChecked={this.state.useUnicode}
-            onChange={(e) => {
-              this.setState({
-                useUnicode: e.target.checked,
-              });
-            }}/>
+          <WithLabel id='use-unicode'>
+            <input
+              type='checkbox'
+              defaultChecked={this.state.useUnicode}
+              onChange={(e) => {
+                this.setState({
+                  useUnicode: e.target.checked,
+                });
+              }}
+              />
+          </WithLabel>
         </div>
         {this.state.pool.length ? 
           <Player

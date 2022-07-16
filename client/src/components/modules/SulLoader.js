@@ -1,8 +1,8 @@
 import React, { Component } from "react";
 
-import SettingInput from "../modules/SettingInput.js";
+import { WithLabel } from "../../utils/components.js";
 
-import { splitFilename, isAudioExtension, get, post } from "../../scripts/utils.js";
+import { splitFilename, isAudioExtension, get, post } from "../../utils/functions.js";
 
 import styles from "./SulLoader.css";
 
@@ -126,32 +126,35 @@ export default class SulLoader extends Component {
     const statusDisplay = <div className={styles.status}>{this.state.status}</div>;
     return (
       <form className={styles.loader} onSubmit={(e) => e.preventDefault()}>
-        <SettingInput
-          id='data-file-link'
-          type='input'
-          value={this.state.poolLink}
-          onChange={(e) => {
-            this.setState({
-              poolLink: e.target.value,
-            });
-          }}/>
+        <WithLabel id='data-file-link'>
+          <input
+            type='input'
+            value={this.state.poolLink}
+            onChange={(e) => {
+              this.setState({
+                poolLink: e.target.value,
+              });
+            }} />
+        </WithLabel>
         <p>OR:</p>
-        <SettingInput
-          id='username'
-          type='input'
-          onChange={(e) => {
-            this.setState({
-              username: e.target.value,
-            });
-          }}/>
-        <SettingInput
-          id='password'
-          type='password'
-          onChange={(e) => {
-            this.setState({
-              password: e.target.value,
-            });
-          }}/>
+        <WithLabel id='username'>
+          <input
+            type='input'
+            onChange={(e) => {
+              this.setState({
+                username: e.target.value,
+              });
+            }} />
+        </WithLabel>
+        <WithLabel id='password'>
+          <input
+            type='password'
+            onChange={(e) => {
+              this.setState({
+                password: e.target.value,
+              });
+            }} />
+        </WithLabel>
         <div>
           <button
             type="button"

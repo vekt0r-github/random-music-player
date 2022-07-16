@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 
-import SettingInput from "../modules/SettingInput.js";
+import { WithLabel } from "../../utils/components.js";
 
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
@@ -15,7 +15,7 @@ import {
   readFileBinary,
   toBuffer,
   getAudioHandle
-} from "../../scripts/utils.js";
+} from "../../utils/functions.js";
 
 import styles from "./CollectionLoader.css";
 
@@ -216,15 +216,16 @@ export default class CollectionLoader extends Component {
           <div id="collection-select-container">
             <label htmlFor="collection-select">collections:</label>
             <div id="collection-select">{collectionSelectTable}</div>
-            <SettingInput
-              id='write-metadata-to-audio-files'
-              type='checkbox'
-              defaultChecked={this.state.useMetadata}
-              onChange={(e) => {
-                this.setState({
-                  useMetadata: e.target.checked,
-                });
-              }}/>
+            <WithLabel id='write-metadata-to-audio-files'>
+              <input
+                type='checkbox'
+                defaultChecked={this.state.useMetadata}
+                onChange={(e) => {
+                  this.setState({
+                    useMetadata: e.target.checked,
+                  });
+                }} />
+            </WithLabel>
             <div>
               <button
                 type="button"

@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 
-import SettingInput from "../modules/SettingInput.js";
+import { WithLabel } from "../../utils/components.js";
 
 import MP3Tag from "mp3tag.js";
 
@@ -9,7 +9,7 @@ import {
   readFileBinary, 
   toBuffer, 
   isAudioExtension, 
-} from "../../scripts/utils.js";
+} from "../../utils/functions.js";
 
 import styles from "./FolderLoader.css";
 
@@ -79,15 +79,16 @@ export default class FolderLoader extends Component {
     return (
       <div className={styles.loader}>
         <input type="file" accept="image/*" webkitdirectory="true" ref={this.fileSelect} />
-        <SettingInput
-          id='get-metadata-from-audio-files'
-          type='checkbox'
-          defaultChecked={this.state.useMetadata}
-          onChange={(e) => {
-            this.setState({
-              useMetadata: e.target.checked,
-            });
-          }}/>
+        <WithLabel id='get-metadata-from-audio-files'>
+          <input
+            type='checkbox'
+            defaultChecked={this.state.useMetadata}
+            onChange={(e) => {
+              this.setState({
+                useMetadata: e.target.checked,
+              });
+            }} />
+        </WithLabel>
         <span>{this.state.status}</span>
       </div>
     );

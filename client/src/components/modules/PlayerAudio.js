@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED } from "react";
 import ReactDOM from "react-dom";
 
-import SettingInput from "../modules/SettingInput.js";
+import { IntegerInput, WithLabel } from "../../utils/components.js";
 
 import styles from "./PlayerAudio.css";
 
@@ -59,7 +59,7 @@ export default class PlayerAudio extends Component {
     this.setState({
       songsLeft: this.state.songsLeft - 1,
     }, () => {
-      this.songsLeftInput.current.value = this.state.songsLeft;
+      this.songsLeftInput.current.setCurrValue(this.state.songsLeft);
       this.props.playNext();
     });
   }
@@ -107,30 +107,26 @@ export default class PlayerAudio extends Component {
             >&gt;</button>
         </div>
         <div className={styles.timerContainer}>
-          <SettingInput
-            id='enable-timer'
-            type='checkbox'
-            onInput={(e) => {
-              this.setState({
-                songsLeftActive: e.target.checked,
-              });
-            }}
-          />
-          {this.state.songsLeftActive ?
-            <SettingInput
-              ref={this.songsLeftInput}
-              id='songs-left'
-              type='text'
-              defaultValue={this.state.songsLeft}
+          <WithLabel id='enable-timer'>
+            <input
+              type='checkbox'
               onInput={(e) => {
-                let value = parseInt(e.target.value);
-                if (isNaN(value)) { return; }
                 this.setState({
-                  songsLeft: value,
+                  songsLeftActive: e.target.checked,
                 });
-              }}
-              onBlur={(e) => { e.target.value = this.state.songsLeft }}
-            /> : null}
+              }} />
+          </WithLabel>
+          {this.state.songsLeftActive ?
+            <WithLabel id='songs-left'>
+              <IntegerInput
+                ref={this.songsLeftInput}
+                defaultValue={this.state.songsLeft}
+                onValidInput={(value) => {
+                  this.setState({
+                    songsLeft: value,
+                  });
+                }} />
+            </WithLabel> : null}
         </div>
       </div>
     )

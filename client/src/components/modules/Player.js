@@ -1,10 +1,10 @@
 import React, { Component } from "react";
 
 import PlayerAudio from "../modules/PlayerAudio.js";
-import SettingInput from "../modules/SettingInput.js";
 import Table from "./Table.js";
 
-import { randomChoice, mod, getMaybeUnicode } from "../../scripts/utils.js";
+import { randomChoice, mod, getMaybeUnicode } from "../../utils/functions.js";
+import { WithLabel } from "../../utils/components.js";
 
 import styles from "./Player.css";
 
@@ -339,20 +339,21 @@ export default class Player extends Component {
             <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
           </div>
           <div id="pool-container" className={styles.list}>
-            <SettingInput
-              id='filter-to-query'
-              type='checkbox'
-              onInput={(e) => {
-                this.setState({
-                  filterToQuery: e.target.checked,
-                });
-              }}
-            />
-            <SettingInput
-              id='search-pool'
-              type='text'
-              onKeyUp={(e) => this.onQueryChange(e.target.value)}
-            />
+            <WithLabel id='filter-to-query'>
+              <input
+                type='checkbox'
+                onInput={(e) => {
+                  this.setState({
+                    filterToQuery: e.target.checked,
+                  });
+                }} />
+            </WithLabel>
+            <WithLabel id='search-pool'>
+              <input
+                type='text'
+                onKeyUp={(e) => this.onQueryChange(e.target.value)}
+                />
+            </WithLabel>
             <Table id="pool" entries={poolEntries} maxHeight="360px" />
           </div>
         </div>

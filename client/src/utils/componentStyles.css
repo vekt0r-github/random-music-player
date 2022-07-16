@@ -1,0 +1,14 @@
+.inputContainer {
+  margin: var(--xs) 0;
+}
+
+.input {
+  padding: 0 var(--xs);
+  max-width: 120px;
+}
+
+.plusMinusButton {
+  padding: 0;
+  width: 2rem;
+  margin-left: var(--xxs);
+}
