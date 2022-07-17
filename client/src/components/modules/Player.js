@@ -3,7 +3,7 @@ import React, { Component } from "react";
 import PlayerAudio from "../modules/PlayerAudio.js";
 import Table from "./Table.js";
 
-import { randomChoice, mod, getMaybeUnicode } from "../../utils/functions.js";
+import { randomChoice, mod, getMaybeUnicode, parseQueryString, objectMatchesQueries } from "../../utils/functions.js";
 import { WithLabel } from "../../utils/components.js";
 
 import styles from "./Player.css";
@@ -35,6 +35,7 @@ export default class Player extends Component {
       currPoolLoc: 0, // position in *display* pool-- possibly NOT an integer!
       selectedList: Lists.PLAYLIST, // PLAYLIST | POOL
       poolSearchQuery: "",
+      queries: [],
       filterToQuery: false, // whether rng pulls from search results
     });
 
@@ -101,9 +102,24 @@ export default class Player extends Component {
    * @returns [Song] filtered from pool
    */
   poolSearchResults(newQuery) {
-    const query = (newQuery ?? this.state.poolSearchQuery).toLowerCase();
+    const queryString = (newQuery ?? this.state.poolSearchQuery).toLowerCase();
+    const queries = parseQueryString(queryString);
+    if (queries === undefined) return [];
     return this.pool.filter(song => {
-      return song.displayName.toLowerCase().includes(query); // not unicode
+      return objectMatchesQueries(song, queries, { 
+        fields: [
+          "artist",
+          "title",
+          "displayName",
+          "creator_name", // for osu
+          "difficulty",
+          "folder_name",
+          "mode",
+          "osu_file_name",
+          "song_source",
+          "song_tags",
+        ] 
+      });
     });
   }
 
@@ -323,6 +339,7 @@ export default class Player extends Component {
 
     return (
       <div className={styles.playerDisplayContainer}>
+        {this.queries}
         <div id="player-container" className={styles.playerContainer}>
           <PlayerAudio
             ref={this.playerAudio}
@@ -339,7 +356,7 @@ export default class Player extends Component {
             <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
           </div>
           <div id="pool-container" className={styles.list}>
-            <WithLabel id='filter-to-query'>
+            <WithLabel id='filter-pool-to-query'>
               <input
                 type='checkbox'
                 onInput={(e) => {
@@ -348,11 +365,15 @@ export default class Player extends Component {
                   });
                 }} />
             </WithLabel>
-            <WithLabel id='search-pool'>
-              <input
-                type='text'
-                onKeyUp={(e) => this.onQueryChange(e.target.value)}
-                />
+            <WithLabel id='search'>
+              <>
+                <input
+                  className={styles.poolSearchBar}
+                  type='text'
+                  onKeyUp={(e) => this.onQueryChange(e.target.value)}
+                  />
+                &nbsp;({poolEntries.length})
+              </>
             </WithLabel>
             <Table id="pool" entries={poolEntries} maxHeight="360px" />
           </div>

@@ -33,4 +33,3 @@ kete
 - reimplement scrollIfNeeded for pool box
 - improve performance with many songs
 - make sure revokeObjectURL is called at the end too
-- better search (word split and tags)

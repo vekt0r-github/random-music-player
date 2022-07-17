@@ -2,7 +2,8 @@ import React, { Component } from "react";
 
 import { WithLabel } from "../../utils/components.js";
 
-import { splitFilename, isAudioExtension, get, post } from "../../utils/functions.js";
+import { splitFilename, isAudioExtension } from "../../utils/functions.js";
+import { get, post } from "../../utils/requests.js";
 
 import styles from "./SulLoader.css";
 

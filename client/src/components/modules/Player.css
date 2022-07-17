@@ -15,7 +15,6 @@
   composes: u-container from "../../utilities.css";
   display: flex;
   flex-wrap: wrap;
-  width: fit-content;
 }
 
 .list {
@@ -24,7 +23,16 @@
 }
 
 .list + .list {
-  margin-left: var(--s);
+  margin: 0 0 0 var(--s);
+}
+
+@media(max-width: 650px) {
+  .displayContainer {
+    flex-direction: column;
+  }
+  .list + .list {
+    margin: var(--m) 0 0 0;
+  }  
 }
 
 .refreshButton {
@@ -35,4 +43,8 @@
 #playlistLabel {
   display: block;
   margin: var(--xs) 0;
+}
+
+.poolSearchBar {
+  width: 160px;
 }

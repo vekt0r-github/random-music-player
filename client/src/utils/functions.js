@@ -51,29 +51,6 @@ export const getMaybeUnicode = (song, property, useUnicode) => {
  */
 export const readFileBinary = (file, onProgress) => {
   return new Promise((resolve, reject) => {
-    // var form = new FormData();
-    // form.append('file', file);
-    // const url = URL.createObjectURL(file);
-    // var xhr = new XMLHttpRequest();
-    // xhr.open('GET', url);
-    // xhr.onload = function () {
-    //   if (xhr.status >= 200 && xhr.status < 300) {
-    //     resolve(toBuffer(xhr.response));
-    //   } else {
-    //     reject({
-    //       status: xhr.status,
-    //       statusText: xhr.statusText
-    //     });
-    //   }
-    // };
-    // xhr.onerror = function () {
-    //   reject({
-    //     status: xhr.status,
-    //     statusText: xhr.statusText
-    //   });
-    // };
-    // xhr.send();
-    
     const fileSize = file.size;
     const chunkSize = 1024 * 1024; // bytes
     let offset = 0;
@@ -142,56 +119,102 @@ export const scrollIfNeeded = (element, container) => {
 
 export const isAudioExtension = (ext) => ["mp3", "wav", "flac"].includes(ext);
 
-// ex: formatParams({ some_key: "some_value", a: "b"}) => "some_key=some_value&a=b"
-function formatParams(params) {
-  // iterate of all the keys of params as an array,
-  // map it to a new array of URL string encoded key,value pairs
-  // join all the url params using an ampersand (&).
-  return Object.keys(params)
-    .map((key) => key + "=" + encodeURIComponent(params[key]))
-    .join("&");
-}
-
-// convert a fetch result to a JSON object with error handling for fetch and json errors
-function convertToJSON(res) {
-  if (!res.ok) {
-    throw `API request failed with response status ${res.status} and text: ${res.statusText}`;
+/**
+ * helper for generating queries for objectMatchesQueries
+ * 
+ * @param {string} queryString full string to parse
+ * @returns list of objects [{ field?, value }]
+ */
+export const parseQueryString = (queryString) => {
+  const querySegments = [];
+  const quote = /['"`]/;
+  let lock = null;
+  let currQuery = "";
+  for (const c of (queryString+" ").split('')) {
+    if (lock === null) {
+      if (c.match(/\s/)) {
+        if (currQuery.length) querySegments.push(currQuery);
+        currQuery = "";
+      } else {
+        if (c.match(quote)) lock = c;
+        currQuery += c;
+      }
+    } else {
+      currQuery += c;
+      if (lock === c) {
+        lock = null;
+        querySegments.push(currQuery);
+        currQuery = "";
+      }
+    }
   }
-
-  return res
-    .clone() // clone so that the original is still readable for debugging
-    .json() // start converting to JSON object
-    .catch((error) => {
-      // throw an error containing the text that couldn't be converted to JSON
-      return res.text().then((text) => {
-        throw `API request's result could not be converted to a JSON object: \n${text}`;
-      });
-    });
+  if (currQuery.length) return undefined; // bad query
+  const queries = querySegments.map(query => {
+    const splitByEquals = query.split("=");
+    if (splitByEquals.length > 1) {
+      const field = splitByEquals[0];
+      const rest = splitByEquals.slice(1).join("=");
+      if (!query.endsWith(rest)) throw new Error();
+      let value;
+      const cAfter = rest.charAt(0);
+      if (!query.match(quote)) { // field=value
+        value = rest;
+      } else if (cAfter.match(quote) && query.endsWith(cAfter)) {
+        // field="value"
+        value = rest.slice(1, -1);
+      }
+      if (value) return { field, value };
+    }
+    let value;
+    const cFirst = query.charAt(0);
+    if (!query.match(quote)) { // value
+      value = query;
+    } else if (cFirst.match(quote) && query.endsWith(cFirst)) {
+      // "value"
+      value = query.slice(1, -1);
+    }
+    if (value) return { value };
+    return undefined; // will invalidate entire list
+  });
+  if (queries.includes(undefined)) return undefined;
+  return queries;
 }
 
-// Helper code to make a get request. Default parameter of empty JSON Object for params.
-// Returns a Promise to a JSON Object.
-export function get(endpoint, params = {}) {
-  const fullPath = endpoint + "?" + formatParams(params);
-  return fetch(fullPath)
-    .then(convertToJSON)
-    .catch((error) => {
-      // give a useful error message
-      throw `GET request to ${fullPath} failed with error:\n${error}`;
-    });
+const fieldMatchesQuery = (value, queryValue) => {
+  // helper for the below
+  if (typeof value === 'function') return false;
+  return `${value}`.toLowerCase().includes(queryValue.toLowerCase());
 }
 
-// Helper code to make a post request. Default parameter of empty JSON Object for params.
-// Returns a Promise to a JSON Object.
-export function post(endpoint, params = {}) {
-  return fetch(endpoint, {
-    method: "post",
-    headers: { "Content-type": "application/json" },
-    body: JSON.stringify(params),
-  })
-    .then(convertToJSON) // convert result to JSON object
-    .catch((error) => {
-      // give a useful error message
-      throw `POST request to ${endpoint} failed with error:\n${error}`;
-    });
+/**
+ * checks if each query can be found in the object's values
+ * 
+ * @param {Object} obj the object
+ * @param {Query[]} queries list of objects [{ field?, value }]
+ * @param options object { fields?, ignoreFields? }
+ * - fields: list of fields to check
+ * - ignoreFields: the complement
+ * @returns bool
+ */
+export const objectMatchesQueries = (obj, queries, options={}) => {
+  // succeeds if each portion matches
+  for (const { field, value } of queries) {
+    if (field !== undefined) {
+      // check specific field matches value
+      if (!fieldMatchesQuery(obj[field], value)) return false;
+    } else {
+      // search all keys for value
+      let found = false;
+      for (const [key, val] of Object.entries(obj)) {
+        if (options.ignoreFields && options.ignoreFields.includes(key)) continue;
+        if (options.fields && !options.fields.includes(key)) continue;
+        if (fieldMatchesQuery(val, value)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) return false;
+    }
+  }
+  return true; // all portions matched
 }

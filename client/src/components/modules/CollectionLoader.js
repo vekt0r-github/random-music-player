@@ -147,6 +147,7 @@ export default class CollectionLoader extends Component {
       return addDisplayName({
         path: url,
         artist, title, artistUnicode, titleUnicode,
+        ...beatmap // throw in everything else for searching purposes
       });
     }));
     return pool.filter(song => song !== null);
