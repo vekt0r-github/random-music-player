@@ -31,5 +31,10 @@ kete
 - sort pool list
 - or use api https://github.com/remanifest/s-ul-curl-uploader
 - reimplement scrollIfNeeded for pool box
-- improve performance with many songs
+- performance issues:
+  - pool search component keying
+  - pool loading dynamic url assignment
+  - Possible EventEmitter memory leak detected.
 - make sure revokeObjectURL is called at the end too
+- fix width depending on whether textbox is filled out
+- sorting options

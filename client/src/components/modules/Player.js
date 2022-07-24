@@ -1,4 +1,5 @@
-import React, { Component } from "react";
+import React, { useEffect, useRef, useMemo, useCallback } from "react";
+import { useReducerPromise, useStatePromise } from "../../utils/hooks.js";
 
 import PlayerAudio from "../modules/PlayerAudio.js";
 import Table from "./Table.js";
@@ -13,7 +14,54 @@ export const Lists = Object.freeze({
   POOL: "pool",
 });
 
-export default class Player extends Component {
+export const Direction = Object.freeze({
+  NEXT: "next",
+  PREV: "prev",
+});
+
+/**
+ * toggles availability
+ * if oldIndex == newIndex, then it will be not available
+ * 
+ * @param {Set<Number>} availableIndices complement of banned region
+ * @param {Number} oldIndex to be available again (leaving banned region)
+ * @param {Number} newIndex to no longer be available (new to banned region)
+ */
+const replaceAvailableIndex = (availableIndices, oldIndex, newIndex) => {
+  if (oldIndex !== undefined) availableIndices.add(oldIndex);
+  if (newIndex !== undefined) availableIndices.delete(newIndex);
+}
+
+/**
+ * seeks to strictly next or previous entry in results, cyclically
+ * 
+ * @param {Number} value integer
+ * @param {Direction} direction to seek
+ * @param {Number[]} results must be sorted integers (and nonempty if originalResults is unset)
+ * @returns value
+ */
+const seekToResult = (value, direction, results) => {
+  const isNext = direction === Direction.NEXT;
+  value += isNext ? 0.5 : -0.5; // avoid collisions
+  const first = results[0], last = results[results.length - 1];
+  if (value < first || value > last) {
+    return isNext ? first : last;
+  }
+  let low = 0;
+  let high = results.length - 1;
+  while (high - low > 1) {
+    const split = Math.floor((low + high) / 2);
+    const splitValue = results[split]; // integer
+    if (value > splitValue) {
+      low = split;
+    } else { // there is no equality
+      high = split;
+    } 
+  }
+  return results[isNext ? high : low];
+}
+
+const Player = (props) => {
   /**
    * typedefs
    * Song: {path, artist, title, displayName ...}
@@ -27,44 +75,44 @@ export default class Player extends Component {
    * rowsAfter: Number
    * useUnicode: Boolean
    */
-  constructor(props) {
-    super(props);
-    this.newDefaultState = () => ({
-      playlist: [],
-      currPlaylistLoc: 0, // saved when pool is active, unlike currPoolLoc
-      currPoolLoc: 0, // position in *display* pool-- possibly NOT an integer!
-      selectedList: Lists.PLAYLIST, // PLAYLIST | POOL
-      poolSearchQuery: "",
-      queries: [],
-      filterToQuery: false, // whether rng pulls from search results
-    });
+  const poolSearchResults = useRef();
 
-    this.state = this.newDefaultState();
-
-    this.playerAudio = React.createRef();
-    this.nowPlaying = undefined;
-  }
-
-  componentDidMount = () => {
-    this.reset();
-  }
-
-  componentDidUpdate = (oldProps) => {
-    const diffProps = (prop) => oldProps[prop] !== this.props[prop];
-    if (diffProps('pool')) {
-      this.reset();
-      return;
+  const [playlist, setPlaylist, playlistRef] = useStatePromise([]);
+  const [currLoc, dispatchCurrLoc, currLocRef] = useReducerPromise((state, action) => {
+    // action type:
+    // {seek: {direction}} OR
+    // {set: {list?, index}}
+    let newList = state.list;
+    let newIndex = state.index;
+    if (action.set) {
+      if (action.set.list) newList = action.set.list;
+      newIndex = action.set.index;
+    } else {
+      if (state.list === Lists.PLAYLIST) {
+        newIndex = action.seek.direction === Direction.NEXT
+          ? state.index + 1
+          : Math.max(state - 1, 0)
+      } else {
+        newIndex = seekToResult(state.index, action.seek.direction, poolSearchResults.current);
+      }
     }
-    if (diffProps('noRepeatNum')) {
-      this.rebuffer();
-    } 
-    if (diffProps('rowAfter')) {
-      this.buffer();
-    }
-  }
+    return {
+      list: newList,
+      index: newIndex,
+      playlistIndex: newList === Lists.PLAYLIST ? newIndex : state.playlistIndex,
+    };
+  }, {
+    list: Lists.PLAYLIST, // active list
+    index: 0, // index on current list
+    playlistIndex: 0, // index on playlist, for when pool is playing
+  }); 
+  const [poolSearchQuery, setPoolSearchQuery] = useStatePromise("");
+  const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
+  const playerAudio = useRef();
+  const availableIndices = useRef(new Set(props.pool.keys()));
 
-  reset = () => {
-    this.pool = this.props.pool.map((song, index) => {
+  const pool = useMemo(() => {
+    return props.pool.map((song, index) => {
       const maybeUni = (property) => (useUnicode) => 
         getMaybeUnicode(song, property, useUnicode);
       return {
@@ -75,37 +123,15 @@ export default class Player extends Component {
         getDisplayName: maybeUni('displayName'),
       }; 
     });
-    this.availableIndices = new Set(this.props.pool.keys()),
-    this.playerInitialized = false;
+  }, [props.pool]);
 
-    this.setState(this.newDefaultState(), () => {
-      this.buffer();
-      this.playCurr();
-    });
-  }
-
-  /**
-   * toggles availability
-   * if oldIndex == newIndex, then it will be not available
-   * 
-   * @param {Number} oldIndex to be available again (leaving banned region)
-   * @param {Number} newIndex to no longer be available (new to banned region)
-   */
-  replaceAvailableIndex(oldIndex, newIndex) {
-    if (oldIndex !== undefined) this.availableIndices.add(oldIndex);
-    if (newIndex !== undefined) this.availableIndices.delete(newIndex);
-  }
-
-  /**
-   * find current search results to display
-   * should preserve index order
-   * @returns [Song] filtered from pool
-   */
-  poolSearchResults(newQuery) {
-    const queryString = (newQuery ?? this.state.poolSearchQuery).toLowerCase();
+  poolSearchResults.current = useMemo(() => {
+    // find current search results to display
+    // should preserve index order
+    const queryString = poolSearchQuery.toLowerCase();
     const queries = parseQueryString(queryString);
     if (queries === undefined) return [];
-    return this.pool.filter(song => {
+    return pool.filter(song => {
       return objectMatchesQueries(song, queries, { 
         fields: [
           "artist",
@@ -120,265 +146,222 @@ export default class Player extends Component {
           "song_tags",
         ] 
       });
-    });
-  }
+    }).map(song => song.index);
+  }, [pool, poolSearchQuery]); // [number] indices filtered from pool
+
+  // determine current song
+  const nowPlaying = (currLoc.list === Lists.PLAYLIST ? playlist : pool)[currLoc.index];
 
   /**
-   * recomputes pool loc for the search query
+   * generates future songs, up to buffer specified by props.rowsAfter
+   * 
+   * @param {Number?} fromIndex discard and rebuffer everything after the first N entries
    */
-  onQueryChange(newQuery) {
-    if (newQuery === this.state.poolSearchQuery) { return; }
-    let indices = this.poolSearchResults(newQuery);
-    indices = indices.filter(song => song.index <= this.nowPlaying.index);
-    let newLoc;
-    if (indices.length && indices.slice(-1)[0].index === this.nowPlaying.index) {
-      newLoc = indices.length - 1; // on an entry
-    } else {
-      newLoc = indices.length - 0.5; // between entries
-    }
-    this.setState({
-      currPoolLoc: newLoc,
-      poolSearchQuery: newQuery,
-    });
-  }
-
-  /**
-   * generates future songs, up to buffer specified by this.props.rowsAfter
-   */
-  buffer = () => {
-    const poolResults = this.poolSearchResults();
-    const noRepeatNum = this.props.noRepeatNum;
-    const newPlaylist = [...this.state.playlist];
-    while (newPlaylist.length - this.state.currPlaylistLoc - 1 < this.props.rowsAfter) {
-      console.assert(noRepeatNum < this.pool.length);
-      console.assert(this.availableIndices.size >= this.pool.length - noRepeatNum);
-      let indices = this.availableIndices;
-      if (this.state.filterToQuery) {
-        indices = poolResults.map(song => song.index).filter(i => indices.has(i));
+  const buffer = useCallback((fromIndex) => {
+    const currPlaylistLoc = currLoc.playlistIndex;
+    const noRepeatNum = props.noRepeatNum;
+    if (fromIndex !== undefined) { // only recompute if rebuffering
+      const recentCutoff = Math.max(fromIndex - props.noRepeatNum, 0);
+      const recent = playlist.slice(recentCutoff, fromIndex).map(song => song.index);
+      availableIndices.current = new Set([...pool.keys()].filter(x => !recent.includes(x)));
+    } 
+    const newPlaylist = playlist.slice(0, fromIndex ?? playlist.length);
+    while (newPlaylist.length - currPlaylistLoc - 1 < props.rowsAfter) {
+      console.assert(noRepeatNum < pool.length);
+      console.assert(availableIndices.current.size >= pool.length - noRepeatNum);
+      let indices = availableIndices.current;
+      if (filterToQuery) {
+        indices = poolSearchResults.current.filter(i => indices.has(i));
       }
       // choose a new random song
-      const newSongDefault = newPlaylist[newPlaylist.length - poolResults.length];
+      const newSongDefault = newPlaylist[newPlaylist.length - poolSearchResults.current.length];
       let newIndexDefault;
       if (newSongDefault) { newIndexDefault = newSongDefault.index; }
       const newIndex = randomChoice([...indices]) ?? newIndexDefault;
       if (newIndex === undefined) { return; } // failsafes
 
-      if (this.props.noRepeatNum > 0) {
+      if (props.noRepeatNum > 0) {
         let oldIndex;
         const addBackIndex = newPlaylist.length - noRepeatNum;
         if (addBackIndex >= 0) {
           oldIndex = newPlaylist[addBackIndex].index;
         }
-        this.replaceAvailableIndex(oldIndex, newIndex);
+        replaceAvailableIndex(availableIndices.current, oldIndex, newIndex);
       }
-      newPlaylist.push(this.pool[newIndex]);
+      newPlaylist.push(pool[newIndex]);
     }
-    this.setState({
-      playlist: newPlaylist,
+    return setPlaylist(newPlaylist); // promise
+  });
+  useEffect(buffer, [currLoc, props.rowsAfter]);
+
+  const playCurr = () => {
+    playerAudio.current.play();
+  };
+
+  const playFrom = (list, index) => {
+    dispatchCurrLoc({
+      set: {list, index},
+    }).then(() => {
+      playCurr();
     });
-  }
+  };
 
-  /**
-   * regenerates everything after currSong if user doesn't like it
-   */
-  rebuffer = () => {
-    const recentCutoff = Math.max(this.state.currPlaylistLoc - this.props.noRepeatNum + 1, 0)
-    const recent = this.state.playlist.slice(recentCutoff, this.state.currPlaylistLoc + 1).map(song => song.index);
-    this.availableIndices = new Set([...this.pool.keys()].filter(x => !recent.includes(x))),
-    this.setState({
-      playlist: this.state.playlist.slice(0, this.state.currPlaylistLoc + 1),
-    }, this.buffer);
-  }
-
-  playFrom = (list, index) => { 
-    const property = list === Lists.PLAYLIST
-      ? 'currPlaylistLoc'
-      : 'currPoolLoc'
-    this.setState({
-      selectedList: list,
-      [property]: index,
-    }, () => {
-      this.buffer();
-      this.playerAudio.current.play();
+  const playPrev = () => {
+    dispatchCurrLoc({
+      seek: {direction: Direction.PREV},
+    }).then(() => {
+      playCurr();
     });
-  }
+  };
 
-  playPrev = (num = 1, list) => {
-    list = list ?? this.state.selectedList;
-    if (list === Lists.PLAYLIST) {
-      const newLoc = Math.max(0, this.state.currPlaylistLoc - num);
-      this.playFrom(Lists.PLAYLIST, newLoc);
-    } else {
-      const poolLoc = Math.ceil(this.state.currPoolLoc);
-      const newLoc = mod(poolLoc - num, this.poolSearchResults().length);
-      this.playFrom(Lists.POOL, newLoc);
-    }
-  }
+  const playNext = () => {
+    dispatchCurrLoc({
+      seek: {direction: Direction.NEXT},
+    }).then(() => {
+      playCurr();
+    });
+  };
 
-  playCurr = (list) => {
-    list = list ?? this.state.selectedList;
-    if (list === Lists.PLAYLIST) {
-      this.playFrom(Lists.PLAYLIST, this.state.currPlaylistLoc);
-    } else {
-      const poolLoc = this.state.currPoolLoc;
-      if (!Number.isInteger(poolLoc)) { return; }
-      this.playFrom(Lists.POOL, poolLoc);
-    }
-  }
-
-  playNext = (num = 1, list) => {
-    list = list ?? this.state.selectedList;
-    if (list === Lists.PLAYLIST) {
-      const newLoc = Math.max(0, this.state.currPlaylistLoc + num);
-      this.playFrom(Lists.PLAYLIST, newLoc);
-    } else {
-      const poolLoc = Math.floor(this.state.currPoolLoc);
-      const newLoc = mod(poolLoc + num, this.poolSearchResults().length);
-      this.playFrom(Lists.POOL, newLoc);
-    }
-  }
-
-  removeSong = (relativeNum) => { // relative to currSong
+  const removeSong = useCallback((relativeNum) => { // relative to currSong
     console.assert(relativeNum > 0);
-    const index = this.state.currPlaylistLoc + relativeNum;
-    const firstBanIndex = this.state.playlist.length - this.props.noRepeatNum;
+    const index = currLoc.playlistIndex + relativeNum;
+    const firstBanIndex = playlist.length - props.noRepeatNum;
     if (index >= firstBanIndex) {
-      const oldIndex = this.state.playlist[index].index;
+      const oldIndex = playlist[index].index;
       let newIndex;
       if (firstBanIndex > 0) {
-        newIndex = this.state.playlist[firstBanIndex - 1].index;
+        newIndex = playlist[firstBanIndex - 1].index;
       }
-      this.replaceAvailableIndex(oldIndex, newIndex);
+      replaceAvailableIndex(availableIndices.current, oldIndex, newIndex);
     }
-    this.state.playlist.splice(index, 1);
-    this.buffer();
-  }
+    playlist.splice(index, 1);
+    buffer();
+  }, [playlist, currLoc, buffer, props.noRepeatNum]);
 
-  insertSong = (relativeNum, song) => { // relative to currSong
+  const insertSong = useCallback((relativeNum, song) => { // relative to currSong
     console.assert(relativeNum > 0);
-    const index = this.state.currPlaylistLoc + relativeNum;
-    const firstBanIndex = this.state.playlist.length + 1 - this.props.noRepeatNum;
+    const index = currLoc.playlistIndex + relativeNum;
+    const firstBanIndex = playlist.length + 1 - props.noRepeatNum;
     if (index >= firstBanIndex) {
-      const newIndex = this.state.playlist[index].index;
+      const newIndex = playlist[index].index;
       let oldIndex;
       if (firstBanIndex > 0) {
-        oldIndex = this.state.playlist[firstBanIndex - 1].index;
+        oldIndex = playlist[firstBanIndex - 1].index;
       }
-      this.replaceAvailableIndex(oldIndex, newIndex);
+      replaceAvailableIndex(availableIndices.current, oldIndex, newIndex);
     }
-    this.state.playlist.splice(index, 0, song);
-    this.buffer();
-  }
+    playlist.splice(index, 0, song);
+  }, [playlist, currLoc, props.noRepeatNum]);
 
-  render = () => {
-    if (!this.pool) { return <></>; }
-
-    const makeCell = (text, onclick, selected) => ({text, onclick, selected});
-    
-    // determine current song
-    if (this.state.selectedList === Lists.PLAYLIST) {
-      this.nowPlaying = this.state.playlist[this.state.currPlaylistLoc];
-    } else if (Number.isInteger(this.state.currPoolLoc)) {
-      this.nowPlaying = this.poolSearchResults()[this.state.currPoolLoc];
-    } // else current song is not in current pool view-- do not change
-    if (!this.nowPlaying) { return <></>; }
-    const nowPlaying = this.nowPlaying;
-
-    // make playlist entries
-    const playlistEntries = (() => {
-      let entries = [];
-      const fromSong = this.state.currPlaylistLoc - this.props.rowsBefore;
-      const toSong = this.state.currPlaylistLoc + this.props.rowsAfter;
-      for (let i = fromSong; i <= toSong; i++) {
-        let title = '';
-        let onclick = () => {};
-        let selected = false;
-        if (i >= 0 && i < this.state.playlist.length) {
-          title = this.state.playlist[i].getDisplayName(this.props.useUnicode);
-          const diff = i - this.state.currPlaylistLoc;
-          if (diff === 0) {
-            selected = this.state.selectedList === Lists.PLAYLIST;
-            if (!selected) {
-              onclick = () => this.playCurr(Lists.PLAYLIST);
-            }
-          } else {
-            onclick = () => {
-              this[`play${diff > 0 ? 'Next' : 'Prev'}`](Math.abs(diff), Lists.PLAYLIST);
-            };
-          }
-        }
-        let cell = makeCell(title, onclick, selected);
-  
-        let xtitle = '';
-        let xonclick = () => {};
-        if (i > this.state.currPlaylistLoc && i < this.state.playlist.length) {
-          xtitle = "x";
-          const diff = i - this.state.currPlaylistLoc;
-          xonclick = () => this.removeSong(diff);
-        }
-        let xbutton = makeCell(xtitle, xonclick, selected);
-        entries.push([cell, xbutton]);
+  const reset = async () => {
+    availableIndices.current = new Set(props.pool.keys());
+    setPoolSearchQuery("");
+    setFilterToQuery(false);
+    await dispatchCurrLoc({
+      set: {
+        list: Lists.PLAYLIST,
+        index: 0,
       }
-      return entries;
-    })();
+    });
+    await buffer(0);
+    playCurr();
+  };
+  useEffect(reset, [props.pool]);
 
-    // make pool table
-    const poolEntries = (() => {
-      let entries = [];
-      this.poolSearchResults().forEach((song, index) => {
-        const onclick = () => this.playFrom(Lists.POOL, index);
-        const selected = this.state.selectedList === Lists.POOL && index === this.state.currPoolLoc;
-        const cell = makeCell(song.getDisplayName(this.props.useUnicode), onclick, selected);
+  const makeCell = (text, onclick, selected) => ({text, onclick, selected});
   
-        const ponclick = () => { this.insertSong(1, song); };
-        const pbutton = makeCell("+", ponclick, selected);
-        entries.push([cell, pbutton]);
-      });
-      return entries;
-    })();
+  // make playlist entries
+  const playlistEntries = (() => {
+    const currPlaylistLoc = currLoc.playlistIndex;
+    let entries = [];
+    const fromSong = currPlaylistLoc - props.rowsBefore;
+    const toSong = currPlaylistLoc + props.rowsAfter;
+    for (let i = fromSong; i <= toSong; i++) {
+      let title = '';
+      let onclick = () => playFrom(Lists.PLAYLIST, i);
+      let selected = false;
+      if (i >= 0 && i < playlist.length) {
+        title = playlist[i].getDisplayName(props.useUnicode);
+        if (i === currPlaylistLoc && currLoc.list === Lists.PLAYLIST) {
+          selected = true;
+          onclick = () => {};
+        }
+      }
+      let cell = makeCell(title, onclick, selected);
 
-    return (
-      <div className={styles.playerDisplayContainer}>
-        {this.queries}
-        <div id="player-container" className={styles.playerContainer}>
-          <PlayerAudio
-            ref={this.playerAudio}
-            nowPlaying={nowPlaying}
-            playPrev={() => this.playPrev()}
-            playNext={() => this.playNext()}
-            useUnicode={this.props.useUnicode}
-          />
+      let xtitle = '';
+      let xonclick = () => {};
+      if (i > currPlaylistLoc && i < playlist.length) {
+        xtitle = "x";
+        const diff = i - currPlaylistLoc;
+        xonclick = () => removeSong(diff);
+      }
+      let xbutton = makeCell(xtitle, xonclick, selected);
+      entries.push([cell, xbutton]);
+    }
+    return entries;
+  })();
+
+  // make pool table
+  const poolEntries = (() => {
+    let entries = [];
+    poolSearchResults.current.forEach((poolIndex, index) => {
+      const song = pool[poolIndex];
+      const onclick = () => playFrom(Lists.POOL, poolIndex);
+      const selected = currLoc.list === Lists.POOL 
+        && nowPlaying && poolIndex === nowPlaying.index;
+      const cell = makeCell(song.getDisplayName(props.useUnicode), onclick, selected);
+
+      const ponclick = () => { insertSong(1, song); };
+      const pbutton = makeCell("+", ponclick, selected);
+      entries.push({
+        key: poolIndex,
+        cellEntries: [cell, pbutton],
+      });
+    });
+    return entries;
+  })();
+
+  if (!nowPlaying) return <></>
+
+  return (
+    <div className={styles.playerDisplayContainer}>
+      <div id="player-container" className={styles.playerContainer}>
+        <PlayerAudio
+          ref={playerAudio}
+          nowPlaying={nowPlaying}
+          playPrev={playPrev}
+          playNext={playNext}
+          useUnicode={props.useUnicode}
+        />
+      </div>
+      <div id="display-container" className={styles.displayContainer}>
+        <div id="playlist-container" className={styles.list}>
+          <button className={styles.refreshButton} onClick={() => buffer(currLoc.playlistIndex + 1)}>regenerate</button>
+          <label htmlFor="playlist" id={styles.playlistLabel}>upcoming songs:</label>
+          <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
         </div>
-        <div id="display-container" className={styles.displayContainer}>
-          <div id="playlist-container" className={styles.list}>
-            <button className={styles.refreshButton} onClick={() => this.rebuffer()}>regenerate</button>
-            <label htmlFor="playlist" id={styles.playlistLabel}>upcoming songs:</label>
-            <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
-          </div>
-          <div id="pool-container" className={styles.list}>
-            <WithLabel id='filter-pool-to-query'>
+        <div id="pool-container" className={styles.list}>
+          <WithLabel id='filter-pool-to-query'>
+            <input
+              type='checkbox'
+              onInput={(e) => setFilterToQuery(e.target.checked)} />
+          </WithLabel>
+          <WithLabel id='search'>
+            <>
               <input
-                type='checkbox'
-                onInput={(e) => {
-                  this.setState({
-                    filterToQuery: e.target.checked,
-                  });
-                }} />
-            </WithLabel>
-            <WithLabel id='search'>
-              <>
-                <input
-                  className={styles.poolSearchBar}
-                  type='text'
-                  onKeyUp={(e) => this.onQueryChange(e.target.value)}
-                  />
-                &nbsp;({poolEntries.length})
-              </>
-            </WithLabel>
-            <Table id="pool" entries={poolEntries} maxHeight="360px" />
-          </div>
+                className={styles.poolSearchBar}
+                type='text'
+                onKeyUp={(e) => setPoolSearchQuery(e.target.value)}
+                />
+              &nbsp;({poolEntries.length})
+            </>
+          </WithLabel>
+          <Table id="pool" entries={poolEntries} maxHeight="360px" />
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 }
+
+export default Player;
