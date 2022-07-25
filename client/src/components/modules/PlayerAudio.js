@@ -48,8 +48,15 @@ export default class PlayerAudio extends Component {
     }
   }
 
+  /**
+   * play the current song from beginning
+   */
   play = () => {
-    if (this.player) { this.player.play(); }
+    if (this.player) {
+      this.player.pause();
+      this.player.currentTime = 0;
+      this.player.play();
+    }
     else { this.playQueued = true;}
   }
 

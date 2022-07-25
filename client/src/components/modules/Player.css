@@ -26,7 +26,7 @@
   margin: 0 0 0 var(--s);
 }
 
-@media(max-width: 650px) {
+@media(max-width: 677px) {
   .displayContainer {
     flex-direction: column;
   }

@@ -77,8 +77,8 @@ const Player = (props) => {
    */
   const poolSearchResults = useRef();
 
-  const [playlist, setPlaylist, playlistRef] = useStatePromise([]);
-  const [currLoc, dispatchCurrLoc, currLocRef] = useReducerPromise((state, action) => {
+  const [playlist, setPlaylist] = useStatePromise([]);
+  const [currLoc, dispatchCurrLoc] = useReducerPromise((state, action) => {
     // action type:
     // {seek: {direction}} OR
     // {set: {list?, index}}
@@ -91,7 +91,7 @@ const Player = (props) => {
       if (state.list === Lists.PLAYLIST) {
         newIndex = action.seek.direction === Direction.NEXT
           ? state.index + 1
-          : Math.max(state - 1, 0)
+          : Math.max(state.index - 1, 0)
       } else {
         newIndex = seekToResult(state.index, action.seek.direction, poolSearchResults.current);
       }
@@ -110,6 +110,7 @@ const Player = (props) => {
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
   const playerAudio = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
+  console.log(currLoc)
 
   const pool = useMemo(() => {
     return props.pool.map((song, index) => {
@@ -154,20 +155,24 @@ const Player = (props) => {
 
   /**
    * generates future songs, up to buffer specified by props.rowsAfter
+   * then sets the resulting playlist
    * 
-   * @param {Number?} fromIndex discard and rebuffer everything after the first N entries
+   * @param {Song[]?} newPlaylist rebuffer from this state
+   * @param {boolean} remakeAvailableIndices recompute before buffering
    */
-  const buffer = useCallback((fromIndex) => {
+  const buffer = useCallback((newPlaylist, remakeAvailableIndices = false) => {
     const currPlaylistLoc = currLoc.playlistIndex;
     const noRepeatNum = props.noRepeatNum;
-    if (fromIndex !== undefined) { // only recompute if rebuffering
-      const recentCutoff = Math.max(fromIndex - props.noRepeatNum, 0);
-      const recent = playlist.slice(recentCutoff, fromIndex).map(song => song.index);
+    newPlaylist = newPlaylist ?? playlist.slice();
+    if (remakeAvailableIndices) { 
+      const recentCutoff = Math.max(newPlaylist.length - noRepeatNum, 0);
+      const recent = newPlaylist.slice(recentCutoff).map(song => song.index);
       availableIndices.current = new Set([...pool.keys()].filter(x => !recent.includes(x)));
     } 
-    const newPlaylist = playlist.slice(0, fromIndex ?? playlist.length);
+    console.log('buffering', currPlaylistLoc, newPlaylist)
     while (newPlaylist.length - currPlaylistLoc - 1 < props.rowsAfter) {
       console.assert(noRepeatNum < pool.length);
+      console.log(availableIndices.current, pool.length, noRepeatNum)
       console.assert(availableIndices.current.size >= pool.length - noRepeatNum);
       let indices = availableIndices.current;
       if (filterToQuery) {
@@ -193,6 +198,12 @@ const Player = (props) => {
     return setPlaylist(newPlaylist); // promise
   });
   useEffect(buffer, [currLoc, props.rowsAfter]);
+
+  const rebuffer = useCallback(() => {
+    const newPlaylist = playlist.slice(0, currLoc.playlistIndex + 1);
+    return buffer(newPlaylist, true); // promise
+  });
+  useEffect(rebuffer, [props.noRepeatNum]);
 
   const playCurr = () => {
     playerAudio.current.play();
@@ -234,8 +245,9 @@ const Player = (props) => {
       }
       replaceAvailableIndex(availableIndices.current, oldIndex, newIndex);
     }
-    playlist.splice(index, 1);
-    buffer();
+    const newPlaylist = [...playlist];
+    newPlaylist.splice(index, 1);
+    buffer(newPlaylist);
   }, [playlist, currLoc, buffer, props.noRepeatNum]);
 
   const insertSong = useCallback((relativeNum, song) => { // relative to currSong
@@ -250,7 +262,9 @@ const Player = (props) => {
       }
       replaceAvailableIndex(availableIndices.current, oldIndex, newIndex);
     }
-    playlist.splice(index, 0, song);
+    const newPlaylist = [...playlist];
+    newPlaylist.splice(index, 0, song);
+    setPlaylist(newPlaylist);
   }, [playlist, currLoc, props.noRepeatNum]);
 
   const reset = async () => {
@@ -263,7 +277,7 @@ const Player = (props) => {
         index: 0,
       }
     });
-    await buffer(0);
+    await buffer([]);
     playCurr();
   };
   useEffect(reset, [props.pool]);
@@ -307,9 +321,12 @@ const Player = (props) => {
     let entries = [];
     poolSearchResults.current.forEach((poolIndex, index) => {
       const song = pool[poolIndex];
-      const onclick = () => playFrom(Lists.POOL, poolIndex);
-      const selected = currLoc.list === Lists.POOL 
-        && nowPlaying && poolIndex === nowPlaying.index;
+      let onclick = () => playFrom(Lists.POOL, poolIndex);
+      let selected = false;
+      if (currLoc.list === Lists.POOL && nowPlaying && poolIndex === nowPlaying.index) {
+        selected = true;
+        onclick = () => {};
+      }
       const cell = makeCell(song.getDisplayName(props.useUnicode), onclick, selected);
 
       const ponclick = () => { insertSong(1, song); };
@@ -337,7 +354,7 @@ const Player = (props) => {
       </div>
       <div id="display-container" className={styles.displayContainer}>
         <div id="playlist-container" className={styles.list}>
-          <button className={styles.refreshButton} onClick={() => buffer(currLoc.playlistIndex + 1)}>regenerate</button>
+          <button className={styles.refreshButton} onClick={rebuffer}>regenerate</button>
           <label htmlFor="playlist" id={styles.playlistLabel}>upcoming songs:</label>
           <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
         </div>

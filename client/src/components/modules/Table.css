@@ -1,13 +1,13 @@
 .container {
   border: 1px solid black;
   background-color: white;
-  width: fit-content;
-  max-width: 270px; /* fine for now */
+  width: 300px; /* fine for now */
   overflow: auto;
 }
 
 .table {
   border-collapse: collapse;
+  width: 100%; 
 }
 
 .cell {
