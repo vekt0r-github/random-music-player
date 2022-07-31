@@ -117,7 +117,8 @@ export default class PlayerAudio extends Component {
           <WithLabel id='enable-timer'>
             <input
               type='checkbox'
-              onInput={(e) => {
+              checked={this.state.songsLeftActive}
+              onChange={(e) => {
                 this.setState({
                   songsLeftActive: e.target.checked,
                 });

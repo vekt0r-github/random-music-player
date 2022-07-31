@@ -45,6 +45,17 @@ const parseDB = ({osuFile, collectionFile}) => {
   return {osuData, collectionData};
 }
 
+/**
+ * gets the (rounded to 2 digits) bpm of a map; for now just using the first bpm like site does
+ * @param {[Number, Number, boolean][]} timingPoints ms/beat, timestamp, is red
+ */
+const getBPM = (timingPoints) => {
+  const beatLengthMs = timingPoints[0][0];
+  const bpm = Math.round(100 * 60000 / beatLengthMs) / 100;
+  console.log(bpm, parseFloat(`${bpm}`))
+  return bpm;
+}
+
 export default class CollectionLoader extends Component {
   /**
    * props
@@ -112,12 +123,6 @@ export default class CollectionLoader extends Component {
     return this.state.status === Messages.LOADED;
   }
 
-  selectCollection = (index) => {
-    this.setState({
-      selectedCollection: index,
-    });
-  }
-
   /**
    * get all beatmaps in selected collection
    * @returns list of beatmap objects
@@ -140,13 +145,14 @@ export default class CollectionLoader extends Component {
       const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
       if (!handle) return null; // silently remove beatmap
       const url = await handle.getFile().then(URL.createObjectURL);
-      const artistUnicode = beatmap.artist_name_unicode;
-      const titleUnicode = beatmap.song_title_unicode;
-      const artist = beatmap.artist_name;
-      const title = beatmap.song_title;
       return addDisplayName({
         path: url,
-        artist, title, artistUnicode, titleUnicode,
+        artistUnicode: beatmap.artist_name_unicode,
+        titleUnicode: beatmap.song_title_unicode,
+        artist: beatmap.artist_name,
+        title: beatmap.song_title,
+        bpm: getBPM(beatmap.timing_points),
+        length: beatmap.total_time / 1000,
         ...beatmap // throw in everything else for searching purposes
       });
     }));
@@ -201,7 +207,11 @@ export default class CollectionLoader extends Component {
     if (this.isLoaded()) {
       const entries = this.state.collections.map((collection, index) => [{
         text: `${collection.name} (${collection.beatmapsCount})`,
-        onclick: () => this.selectCollection(index),
+        onclick: () => {
+          this.setState({
+            selectedCollection: index,
+          });
+        },
         selected: this.state.selectedCollection === index,
       }]);
       collectionSelectTable = <Table entries={entries} maxHeight="360px"/>;

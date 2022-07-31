@@ -123,11 +123,12 @@ export const isAudioExtension = (ext) => ["mp3", "wav", "flac"].includes(ext);
  * helper for generating queries for objectMatchesQueries
  * 
  * @param {string} queryString full string to parse
- * @returns list of objects [{ field?, value }]
+ * @returns list of objects [{ field?, op?, value }]
  */
 export const parseQueryString = (queryString) => {
   const querySegments = [];
   const quote = /['"`]/;
+  const oper = /[=<>]/;
   let lock = null;
   let currQuery = "";
   for (const c of (queryString+" ").split('')) {
@@ -150,65 +151,85 @@ export const parseQueryString = (queryString) => {
   }
   if (currQuery.length) return undefined; // bad query
   const queries = querySegments.map(query => {
-    const splitByEquals = query.split("=");
-    if (splitByEquals.length > 1) {
-      const field = splitByEquals[0];
-      const rest = splitByEquals.slice(1).join("=");
-      if (!query.endsWith(rest)) throw new Error();
-      let value;
-      const cAfter = rest.charAt(0);
-      if (!query.match(quote)) { // field=value
-        value = rest;
-      } else if (cAfter.match(quote) && query.endsWith(cAfter)) {
-        // field="value"
-        value = rest.slice(1, -1);
+    const operMatch = query.match(oper);
+    let field, op, valueString = query;
+    if (operMatch) {
+      const { 0: opStr, index } = operMatch;
+      const maybeField = query.slice(0, index);
+      if (!maybeField.match(quote)) {
+        field = maybeField;
+        op = opStr;
+        valueString = query.slice(index + 1);
       }
-      if (value) return { field, value };
     }
     let value;
-    const cFirst = query.charAt(0);
-    if (!query.match(quote)) { // value
-      value = query;
-    } else if (cFirst.match(quote) && query.endsWith(cFirst)) {
-      // "value"
-      value = query.slice(1, -1);
+    const cFirst = valueString.charAt(0);
+    if (!valueString.match(quote)) {
+      value = valueString;
+    } else if (cFirst.match(quote) && valueString.endsWith(cFirst)) {
+      value = valueString.slice(1, -1);
     }
-    if (value) return { value };
+    if (value) return { field, op, value };
     return undefined; // will invalidate entire list
   });
   if (queries.includes(undefined)) return undefined;
   return queries;
 }
 
-const fieldMatchesQuery = (value, queryValue) => {
-  // helper for the below
-  if (typeof value === 'function') return false;
-  return `${value}`.toLowerCase().includes(queryValue.toLowerCase());
+export class SearchField {
+  ops = Object.freeze({
+    "in": (a, b) => a.includes(b),
+    "=": (a, b) => a === b,
+    ">": (a, b) => a > b,
+    "<": (a, b) => a < b,
+  })
+  constructor(options = {}) {
+    this.keywordOnly = options.kwarg ?? false;
+    this.numberField = options.number ?? false;
+    this.process = this.numberField
+      ? (value) => parseFloat(`${value}`)
+      : (value) => `${value}`.toLowerCase();
+  }
+  isMatch = (value, queryValue, op = "=") => {
+    if (typeof value === 'function') return false;
+    // for text searches "=" means contains instead
+    if (!this.numberField && op === "=") op = "in"
+    return this.ops[op](this.process(value), this.process(queryValue));
+  }
 }
 
 /**
  * checks if each query can be found in the object's values
  * 
  * @param {Object} obj the object
- * @param {Query[]} queries list of objects [{ field?, value }]
+ * @param {Query[]} queries list of objects [{ field?, op?, value }]
  * @param options object { fields?, ignoreFields? }
- * - fields: list of fields to check
- * - ignoreFields: the complement
+ * - fields: map from fields to check to SearchField objects (overrules ignoreFields)
+ * - ignoreRest: bool; whether to ignore everything not in fields
+ * - ignoreFields: list of fields to ignore
  * @returns bool
  */
 export const objectMatchesQueries = (obj, queries, options={}) => {
+  const { fields, ignoreRest, ignoreFields } = options;
+  const getSearchField = (field) => { // determines how to handle a field
+    if (fields && field in fields) return fields[field];
+    if (ignoreRest || (ignoreFields && field in ignoreFields)) return undefined;
+    return new SearchField(); // default options
+  }
   // succeeds if each portion matches
-  for (const { field, value } of queries) {
+  for (const { field, op, value } of queries) {
     if (field !== undefined) {
       // check specific field matches value
-      if (!fieldMatchesQuery(obj[field], value)) return false;
+      const searchField = getSearchField(field);
+      console.log(obj[field], value, op)
+      if (!searchField || !searchField.isMatch(obj[field], value, op)) return false;
     } else {
       // search all keys for value
       let found = false;
       for (const [key, val] of Object.entries(obj)) {
-        if (options.ignoreFields && options.ignoreFields.includes(key)) continue;
-        if (options.fields && !options.fields.includes(key)) continue;
-        if (fieldMatchesQuery(val, value)) {
+        const searchField = getSearchField(key);
+        if (!searchField || searchField.keywordOnly) continue;
+        if (searchField.isMatch(val, value)) {
           found = true;
           break;
         }

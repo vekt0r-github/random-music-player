@@ -132,7 +132,7 @@ export default class Home extends Component {
           <WithLabel id='use-unicode'>
             <input
               type='checkbox'
-              defaultChecked={this.state.useUnicode}
+              checked={this.state.useUnicode}
               onChange={(e) => {
                 this.setState({
                   useUnicode: e.target.checked,

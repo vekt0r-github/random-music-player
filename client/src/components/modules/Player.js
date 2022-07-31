@@ -4,7 +4,7 @@ import { useReducerPromise, useStatePromise } from "../../utils/hooks.js";
 import PlayerAudio from "../modules/PlayerAudio.js";
 import Table from "./Table.js";
 
-import { randomChoice, mod, getMaybeUnicode, parseQueryString, objectMatchesQueries } from "../../utils/functions.js";
+import { randomChoice, getMaybeUnicode, SearchField, parseQueryString, objectMatchesQueries } from "../../utils/functions.js";
 import { WithLabel } from "../../utils/components.js";
 
 import styles from "./Player.css";
@@ -110,7 +110,6 @@ const Player = (props) => {
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
   const playerAudio = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
-  console.log(currLoc)
 
   const pool = useMemo(() => {
     return props.pool.map((song, index) => {
@@ -133,19 +132,23 @@ const Player = (props) => {
     const queries = parseQueryString(queryString);
     if (queries === undefined) return [];
     return pool.filter(song => {
+      // console.log(song);
       return objectMatchesQueries(song, queries, { 
-        fields: [
-          "artist",
-          "title",
-          "displayName",
-          "creator_name", // for osu
-          "difficulty",
-          "folder_name",
-          "mode",
-          "osu_file_name",
-          "song_source",
-          "song_tags",
-        ] 
+        fields: {
+          artist: new SearchField(),
+          title: new SearchField(),
+          displayName: new SearchField(),
+          creator_name: new SearchField({kwarg: true}), // for osu
+          difficulty: new SearchField({kwarg: true}),
+          folder_name: new SearchField(),
+          mode: new SearchField({kwarg: true, number: true}),
+          osu_file_name: new SearchField(),
+          song_source: new SearchField(),
+          song_tags: new SearchField(),
+          length: new SearchField({kwarg: true, number: true}),
+          bpm: new SearchField({kwarg: true, number: true}),
+        },
+        ignoreRest: true,
       });
     }).map(song => song.index);
   }, [pool, poolSearchQuery]); // [number] indices filtered from pool
@@ -169,10 +172,8 @@ const Player = (props) => {
       const recent = newPlaylist.slice(recentCutoff).map(song => song.index);
       availableIndices.current = new Set([...pool.keys()].filter(x => !recent.includes(x)));
     } 
-    console.log('buffering', currPlaylistLoc, newPlaylist)
     while (newPlaylist.length - currPlaylistLoc - 1 < props.rowsAfter) {
       console.assert(noRepeatNum < pool.length);
-      console.log(availableIndices.current, pool.length, noRepeatNum)
       console.assert(availableIndices.current.size >= pool.length - noRepeatNum);
       let indices = availableIndices.current;
       if (filterToQuery) {
@@ -362,7 +363,9 @@ const Player = (props) => {
           <WithLabel id='filter-pool-to-query'>
             <input
               type='checkbox'
-              onInput={(e) => setFilterToQuery(e.target.checked)} />
+              checked={filterToQuery}
+              onChange={(e) => setFilterToQuery(e.target.checked)}
+            />
           </WithLabel>
           <WithLabel id='search'>
             <>
