@@ -1,12 +1,13 @@
-import React, { Component } from "react";
-import { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED } from "react";
-import ReactDOM from "react-dom";
+import React, { useEffect, useRef, useCallback } from "react";
 
+import { Status } from "./Player.js";
+
+import { useStatePromise } from "../../utils/hooks.js";
 import { IntegerInput, WithLabel } from "../../utils/components.js";
 
 import styles from "./PlayerAudio.css";
 
-export default class PlayerAudio extends Component {
+const PlayerAudio = (props) => {
   /**
    * typedefs
    * Song: {path, artist, title, displayName ...}
@@ -18,125 +19,106 @@ export default class PlayerAudio extends Component {
    * playPrev: () => {}
    * playNext: () => {}
    * useUnicode: bool
+   * status: enum
+   * setStatus
    */
-  constructor(props) {
-    super(props);
-    console.log(__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED);
+  const [songsLeftActive, setSongsLeftActive] = useStatePromise(false); // controls whether songsLeft applies
+  const [songsLeft, setSongsLeft] = useStatePromise(0); // how many more songs to autoplay before stopping
 
-    this.state = {
-      songsLeftActive: false, // controls whether songsLeft applies
-      songsLeft: 0, // how many more songs to autoplay before stopping
-    };
+  const {nowPlaying, playPrev, playNext, useUnicode, status, setStatus} = props;
+  const path = nowPlaying.path;
 
-    this.player = null;
-    this.playerInitialized = false;
-    this.playQueued;
+  const player = useRef();
+  const songsLeftInput = useRef();
 
-    this.songsLeftInput = React.createRef();
+  const play = () => {
+    player.current.pause();
+    player.current.currentTime = 0;
+    player.current.play();
+    setStatus(Status.PLAYING);
   }
 
-  onAudioChange = (element) => { 
-    this.player = ReactDOM.findDOMNode(element);
-    if (!this.player) { return; }
-    if (!this.playerInitialized) {
-      this.player.volume = 0.1;
-      this.playerInitialized = true;
+  useEffect(() => {
+    if (!player.current) console.warn("player not mounted yet");
+    player.current.volume = 0.1;
+  }, []);
+
+  useEffect(() => {
+    if (!player.current) return;
+    if (status == Status.QUEUED && player.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      play();
     }
-    if (this.playQueued) {
-      this.player.play();
-      this.playQueued = false;
-    }
+  }, [path, status]);
+
+  const autoplayNext = useCallback(async () => {
+    if (!songsLeftActive) { playNext(); return; }
+    if (songsLeft === 0) return;
+    songsLeftInput.current.setCurrValue(songsLeft - 1);
+    await setSongsLeft(songsLeft - 1);
+    playNext();
+  }, [songsLeft, songsLeftActive]);
+
+  // compute and refresh metadata
+  const artist = nowPlaying.getArtist(useUnicode);
+  const displayName = nowPlaying.getDisplayName(useUnicode);
+  const title = nowPlaying.getTitle(useUnicode) ?? displayName;
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({artist, title});
+    navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
+    navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
   }
 
-  /**
-   * play the current song from beginning
-   */
-  play = () => {
-    if (this.player) {
-      this.player.pause();
-      this.player.currentTime = 0;
-      this.player.play();
-    }
-    else { this.playQueued = true;}
-  }
-
-  autoplayNext = () => {
-    if (!this.state.songsLeftActive) { this.props.playNext(); return; }
-    if (this.state.songsLeft === 0) { return; }
-    this.setState({
-      songsLeft: this.state.songsLeft - 1,
-    }, () => {
-      this.songsLeftInput.current.setCurrValue(this.state.songsLeft);
-      this.props.playNext();
-    });
-  }
-
-  render() {
-    const nowPlaying = this.props.nowPlaying;
-
-    // compute and refresh metadata
-    const artist = nowPlaying.getArtist(this.props.useUnicode);
-    const displayName = nowPlaying.getDisplayName(this.props.useUnicode);
-    const title = nowPlaying.getTitle(this.props.useUnicode) ?? displayName;
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({artist, title});
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.props.playPrev());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.props.playNext());
-    }
-
-    return (
-      <div className={styles.audioContainer}>
-        <audio 
-          ref={this.onAudioChange} 
-          id="player" 
-          src={nowPlaying.path}
-          onError={() => this.props.playNext()}
-          onEnded={() => this.autoplayNext()}
-          type="audio/mpeg"
-          controls>
-          text if audio doesn't work
-        </audio>
-        <div className={styles.nowPlaying}>
-          now playing: {displayName}
-        </div>
-        <div id="player-buttons">
-          <button
-            type="button"
-            id="prev"
-            className={styles.button}
-            onClick={() => this.props.playPrev()}
-            >&lt;</button>
-          <button 
-            type="button" 
-            id="next" 
-            className={styles.button}
-            onClick={() => this.props.playNext()}
-            >&gt;</button>
-        </div>
-        <div className={styles.timerContainer}>
-          <WithLabel id='enable-timer'>
-            <input
-              type='checkbox'
-              checked={this.state.songsLeftActive}
-              onChange={(e) => {
-                this.setState({
-                  songsLeftActive: e.target.checked,
-                });
-              }} />
-          </WithLabel>
-          {this.state.songsLeftActive ?
-            <WithLabel id='songs-left'>
-              <IntegerInput
-                ref={this.songsLeftInput}
-                defaultValue={this.state.songsLeft}
-                onValidInput={(value) => {
-                  this.setState({
-                    songsLeft: value,
-                  });
-                }} />
-            </WithLabel> : null}
-        </div>
+  return (
+    <div className={styles.audioContainer}>
+      <audio 
+        ref={player} 
+        id="player" 
+        src={path}
+        onCanPlay={() => {
+          if (status === Status.QUEUED) play();
+        }}
+        onError={() => playNext()}
+        onEnded={() => autoplayNext()}
+        type="audio/mpeg"
+        controls>
+        text if audio doesn't work
+      </audio>
+      <div className={styles.nowPlaying}>
+        now playing: {displayName}
       </div>
-    )
-  }
+      <div id="player-buttons">
+        <button
+          type="button"
+          id="prev"
+          className={styles.button}
+          onClick={() => playPrev()}
+          >&lt;</button>
+        <button 
+          type="button" 
+          id="next" 
+          className={styles.button}
+          onClick={() => playNext()}
+          >&gt;</button>
+      </div>
+      <div className={styles.timerContainer}>
+        <WithLabel id='enable-timer'>
+          <input
+            type='checkbox'
+            checked={songsLeftActive}
+            onChange={(e) => {
+              setSongsLeftActive(e.target.checked);
+            }} />
+        </WithLabel>
+        {songsLeftActive ?
+          <WithLabel id='songs-left'>
+            <IntegerInput
+              ref={songsLeftInput}
+              defaultValue={songsLeft}
+              onValidInput={setSongsLeft} />
+          </WithLabel> : null}
+      </div>
+    </div>
+  )
 }
+
+export default PlayerAudio;

@@ -33,8 +33,10 @@ kete
 - reimplement scrollIfNeeded for pool box
 - performance issues:
   - pool search component keying
-  - pool loading dynamic url assignment
+  - pool loading dynamic url assignment for FolderSelect
+  - dynamic url assignment should preload playlist (if slow)
   - Possible EventEmitter memory leak detected.
-- make sure revokeObjectURL is called at the end too
 - fix width depending on whether textbox is filled out
 - sorting options
+- make width of table's right column constant
+- renders in player.js are extremely slow with many songs now

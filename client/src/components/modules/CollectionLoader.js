@@ -50,9 +50,9 @@ const parseDB = ({osuFile, collectionFile}) => {
  * @param {[Number, Number, boolean][]} timingPoints ms/beat, timestamp, is red
  */
 const getBPM = (timingPoints) => {
+  if (!timingPoints || !timingPoints[0]) return 0;
   const beatLengthMs = timingPoints[0][0];
   const bpm = Math.round(100 * 60000 / beatLengthMs) / 100;
-  console.log(bpm, parseFloat(`${bpm}`))
   return bpm;
 }
 
@@ -142,11 +142,20 @@ export default class CollectionLoader extends Component {
     const beatmaps = this.selectedBeatmaps();
     if (beatmaps === null) { return; }
     const pool = await Promise.all(beatmaps.map(async (beatmap) => {
-      const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
-      if (!handle) return null; // silently remove beatmap
-      const url = await handle.getFile().then(URL.createObjectURL);
-      return addDisplayName({
-        path: url,
+      const makeURL = async () => {
+        const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
+        if (!handle) return null; // silently remove beatmap
+        const url = await handle.getFile().then(URL.createObjectURL);
+        return url;
+      }
+      const song = {
+        async addPath() {
+          this.path = await makeURL();
+        },
+        removePath() {
+          URL.revokeObjectURL(this.path);
+          delete this.path;
+        },
         artistUnicode: beatmap.artist_name_unicode,
         titleUnicode: beatmap.song_title_unicode,
         artist: beatmap.artist_name,
@@ -154,7 +163,8 @@ export default class CollectionLoader extends Component {
         bpm: getBPM(beatmap.timing_points),
         length: beatmap.total_time / 1000,
         ...beatmap // throw in everything else for searching purposes
-      });
+      }
+      return addDisplayName(song);
     }));
     return pool.filter(song => song !== null);
   }
