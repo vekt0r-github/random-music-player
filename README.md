@@ -39,4 +39,4 @@ kete
 - fix width depending on whether textbox is filled out
 - sorting options
 - make width of table's right column constant
-- renders in player.js are extremely slow with many songs now
+- still need to fix memory being significantly higher than before

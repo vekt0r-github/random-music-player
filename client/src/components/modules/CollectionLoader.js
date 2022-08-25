@@ -7,7 +7,7 @@ import JSZip from "jszip";
 import MP3Tag from "mp3tag.js";
 import OsuDBParser from "osu-db-parser";
 
-import Table from "./Table.js";
+import { Table } from "./Table.js";
 
 import { 
   addDisplayName,
@@ -79,6 +79,9 @@ export default class CollectionLoader extends Component {
     this.setState({ 
       status: Messages.LOADING,
       osuDirectoryHandle: osuDirectoryHandle,
+      beatmaps: undefined,
+      collections: undefined,
+      selectedCollection: undefined,
     });
     const getBinaryFile = async (fn) => {
       const fileHandle = await osuDirectoryHandle.getFileHandle(fn);
@@ -215,16 +218,20 @@ export default class CollectionLoader extends Component {
     // make the collection table (keeping the outside scroll container in the same place)
     let collectionSelectTable;
     if (this.isLoaded()) {
-      const entries = this.state.collections.map((collection, index) => [{
+      const collectionColumns = [(collection, index) => ({
         text: `${collection.name} (${collection.beatmapsCount})`,
         onclick: () => {
           this.setState({
             selectedCollection: index,
           });
         },
-        selected: this.state.selectedCollection === index,
-      }]);
-      collectionSelectTable = <Table entries={entries} maxHeight="360px"/>;
+      })];
+      collectionSelectTable = <Table
+        rows={this.state.collections}
+        columns={collectionColumns}
+        selected={this.state.selectedCollection}
+        maxHeight={360}
+      />;
     }
 
     return (

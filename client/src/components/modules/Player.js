@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { useReducerPromise, useStatePromise } from "../../utils/hooks.js";
 
 import PlayerAudio from "../modules/PlayerAudio.js";
-import Table from "./Table.js";
+import { Table, VirtualizedTable } from "./Table.js";
 
 import { randomChoice, getMaybeUnicode, SearchField, parseQueryString, objectMatchesQueries } from "../../utils/functions.js";
 import { WithLabel } from "../../utils/components.js";
@@ -98,7 +98,11 @@ const Player = (props) => {
       }
     }
     if (list === Lists.PLAYLIST) playlistIndex = index;
-    return {list, index, playlistIndex};
+    const newState = {list, index, playlistIndex};
+    if (Object.keys(newState).every((k) => Object.is(state[k], newState[k]))) {
+      return state; // bail out of state update
+    }
+    return newState;
   }, {
     list: Lists.PLAYLIST, // active list
     index: 0, // index on current list
@@ -117,24 +121,20 @@ const Player = (props) => {
     return setPlayerState((state) => ({...state, status}));
   };
   
-  useEffect(() => {
-    console.log(selectedLoc);
+  useEffect(() => { // compute current song after each position change
     const song = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
     const promises = [];
     if (song && !song.path) promises.push(song.addPath());
-    console.log(song, promises)
     Promise.all(promises).then(() => {
-      console.log(song, promises)
       setPlayerState({
         song: song,
         status: Status.QUEUED,
       });
     });
-    console.log('it was my fault')
-    if (song && song.removePath) {
-      return song.removePath.bind(song); // cleans up path to prevent memory leak
+    if (song && song.removePath) { // clean up path to prevent memory leak
+      return song.removePath.bind(song);
     }
-  }, [selectedLoc]);
+  }, [selectedLoc, playlist]); // playlist needed to render after first buffer
 
   const pool = useMemo(() => {
     return props.pool.map((song, index) => {
@@ -305,60 +305,50 @@ const Player = (props) => {
   useEffect(reset, [props.pool]);
 
 
-  // make playlist/pool tables
-  const makeCell = (text, onclick, selected) => ({text, onclick, selected});
-  const playlistEntries = (() => {
-    const currPlaylistLoc = selectedLoc.playlistIndex;
-    let entries = [];
+  // setup for playlist/pool tables
+  const currPlaylistLoc = selectedLoc.playlistIndex;
+  const playlistSlice = (() => {
     const fromSong = currPlaylistLoc - props.rowsBefore;
     const toSong = currPlaylistLoc + props.rowsAfter;
-    for (let i = fromSong; i <= toSong; i++) {
-      let title = '';
-      let onclick = () => playFrom(Lists.PLAYLIST, i);
-      let selected = false;
-      if (i >= 0 && i < playlist.length) {
-        title = playlist[i].getDisplayName(props.useUnicode);
-        if (i === currPlaylistLoc && selectedLoc.list === Lists.PLAYLIST) {
-          selected = true;
-          onclick = () => {};
-        }
-      }
-      let cell = makeCell(title, onclick, selected);
-
-      let xtitle = '';
-      let xonclick = () => {};
-      if (i > currPlaylistLoc && i < playlist.length) {
-        xtitle = "x";
-        const diff = i - currPlaylistLoc;
-        xonclick = () => removeSong(diff);
-      }
-      let xbutton = makeCell(xtitle, xonclick, selected);
-      entries.push([cell, xbutton]);
-    }
-    return entries;
+    if (fromSong >= 0) return playlist.slice(fromSong, toSong + 1);
+    const padding = (new Array(-fromSong)).fill(null);
+    return [...padding, ...playlist.slice(0, toSong + 1)];
   })();
 
-  const poolEntries = (() => {
-    let entries = [];
-    poolSearchResults.current.forEach((poolIndex, index) => {
-      const song = pool[poolIndex];
-      let onclick = () => playFrom(Lists.POOL, poolIndex);
-      let selected = false;
-      if (selectedLoc.list === Lists.POOL && nowPlaying && poolIndex === nowPlaying.index) {
-        selected = true;
-        onclick = () => {};
-      }
-      const cell = makeCell(song.getDisplayName(props.useUnicode), onclick, selected);
+  const blankCell = {text: "", onclick: () => {}};
+  const playlistColumns = [
+    (song, tableIndex) => { // song name
+      const i = tableIndex + currPlaylistLoc - props.rowsBefore; // playlist index
+      if (!song) return blankCell;
+      return {
+        text: song.getDisplayName(props.useUnicode),
+        onclick: () => playFrom(Lists.PLAYLIST, i),
+      };
+    },
+    (song, tableIndex) => { // delete button
+      const diff = tableIndex - props.rowsBefore;
+      if (diff <= 0) return blankCell;
+      return {
+        text: "x",
+        onclick: () => removeSong(diff),
+      };
+    },
+  ];
 
-      const ponclick = () => { insertSong(1, song); };
-      const pbutton = makeCell("+", ponclick, selected);
-      entries.push({
-        key: poolIndex,
-        cellEntries: [cell, pbutton],
-      });
-    });
-    return entries;
-  })();
+  const poolColumns = [
+    (song, poolIndex) => { // song name
+      return {
+        text: song.getDisplayName(props.useUnicode),
+        onclick: () => playFrom(Lists.POOL, poolIndex),
+      };
+    },
+    (song) => { // add button
+      return {
+        text: "+",
+        onclick: () => insertSong(1, song),
+      }
+    },
+  ];
 
   if (!nowPlaying) return <></>
 
@@ -378,7 +368,13 @@ const Player = (props) => {
         <div id="playlist-container" className={styles.list}>
           <button className={styles.refreshButton} onClick={rebuffer}>regenerate</button>
           <label htmlFor="playlist" id={styles.playlistLabel}>upcoming songs:</label>
-          <Table id="playlist" entries={playlistEntries} maxHeight="360px" />
+          <Table
+            id="playlist"
+            rows={playlistSlice}
+            columns={playlistColumns}
+            selected={selectedLoc.list === Lists.PLAYLIST ? props.rowsBefore : null}
+            maxHeight={360}
+          />
         </div>
         <div id="pool-container" className={styles.list}>
           <WithLabel id='filter-pool-to-query'>
@@ -395,10 +391,17 @@ const Player = (props) => {
                 type='text'
                 onKeyUp={(e) => setPoolSearchQuery(e.target.value)}
                 />
-              &nbsp;({poolEntries.length})
+              &nbsp;({poolSearchResults.current.length})
             </>
           </WithLabel>
-          <Table id="pool" entries={poolEntries} maxHeight="360px" />
+          <VirtualizedTable
+            id="pool"
+            rows={pool}
+            columns={poolColumns}
+            filter={(row, index) => poolSearchResults.current.includes(index)}
+            selected={selectedLoc.list === Lists.POOL ? selectedLoc.index : null}
+            maxHeight={360}
+          />
         </div>
       </div>
     </div>

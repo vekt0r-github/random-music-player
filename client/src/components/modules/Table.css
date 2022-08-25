@@ -5,7 +5,7 @@
   overflow: auto;
 }
 
-.table {
+.container table {
   border-collapse: collapse;
   width: 100%; 
 }
