@@ -26,33 +26,50 @@ const PlayerAudio = (props) => {
   const [songsLeftActive, setSongsLeftActive] = useStatePromise(false); // controls whether songsLeft applies
   const [songsLeft, setSongsLeft] = useStatePromise(0); // how many more songs to autoplay before stopping
 
-  const {nowPlaying, playPrev, playNext, useUnicode, status, setStatus} = props;
+  const {nowPlaying, audioObjects, playPrev, playNext, useUnicode, status, setStatus} = props;
   const path = nowPlaying.path;
 
-  const player = useRef();
+  // const player = useRef();
+  const [sourceNode, setSourceNode] = useStatePromise();
   const songsLeftInput = useRef();
 
   const play = () => {
-    player.current.pause();
-    player.current.currentTime = 0;
-    player.current.play();
+    if (!sourceNode) console.warn("source node not set yet");
+    sourceNode.start(0);
     setStatus(Status.PLAYING);
   }
 
   useEffect(() => {
-    if (!player.current) console.warn("player not mounted yet");
-    player.current.volume = 0.1;
-    const context = props.audioContext;
-    const sourceNode = context.createMediaElementSource(player.current);
-    sourceNode.connect(context.destination);
-  }, []);
+    var request = new XMLHttpRequest();
+    request.open('GET', path, true);
+    request.responseType = 'arraybuffer';
+
+    request.onload = () => {
+      const {context, gainNode} = audioObjects;
+      const source = context.createBufferSource();
+      source.onended = () => autoplayNext();
+      context.decodeAudioData(
+        request.response,
+        (buffer) => { // on success
+          source.buffer = buffer;
+          source.connect(gainNode);
+          setSourceNode(source);
+        },
+        () => playNext(), // on error
+      );
+    }
+    request.send();
+  }, [path]);
 
   useEffect(() => {
-    if (!player.current) return;
-    if (status == Status.QUEUED && player.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      play();
+    if (!sourceNode) return;
+    if (status == Status.QUEUED && sourceNode) {
+      try {
+        sourceNode.start(0);
+        setStatus(Status.PLAYING);
+      } catch {}
     }
-  }, [path, status]);
+  }, [status, sourceNode]);
 
   const autoplayNext = useCallback(async () => {
     if (!songsLeftActive) { playNext(); return; }
@@ -74,7 +91,7 @@ const PlayerAudio = (props) => {
 
   return (
     <div className={styles.audioContainer}>
-      <audio 
+      {/* <audio 
         ref={player} 
         id="player" 
         src={path}
@@ -86,7 +103,7 @@ const PlayerAudio = (props) => {
         type="audio/mpeg"
         controls>
         text if audio doesn't work
-      </audio>
+      </audio> */}
       <div className={styles.nowPlaying}>
         now playing: {displayName}
       </div>

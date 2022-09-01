@@ -33,7 +33,7 @@ export default class Home extends Component {
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
       pool: [], // props for Player.js
-      audioContext: undefined,
+      audioObjects: undefined,
       noRepeatNum: 100,
       rowsBefore: 1,
       rowsAfter: 10,
@@ -57,8 +57,13 @@ export default class Home extends Component {
     for (const url of this.state.activeURLs) {
       URL.revokeObjectURL(url);
     }
-    // create and unlock the audio context
+    // create the audio context
     const context = new AudioContext();
+    const gainNode = context.createGain();
+    gainNode.gain.value = this.state.volume;
+    gainNode.connect(context.destination);
+
+    // unlock the audio context
     const emptyBuffer = context.createBuffer(1, 1, 22050);
     const emptySource = context.createBufferSource();
     emptySource.buffer = emptyBuffer;
@@ -85,7 +90,7 @@ export default class Home extends Component {
     this.setState({
       activeURLs: activeURLs,
       pool: pool,
-      audioContext: context,
+      audioObjects: {context, gainNode},
       noRepeatNum: noRepeatNum,
     });
   };
@@ -141,6 +146,15 @@ export default class Home extends Component {
           {makeNumberSettingField('noRepeatNum', this.noRepeatNumInput)}
           {makeNumberSettingField('rowsBefore')}
           {makeNumberSettingField('rowsAfter')}
+          <WithLabel id="volume">
+            <IntegerInput
+              defaultValue={this.state.volume}
+              onValidInput={(value) => {
+                this.setState({ volume: value });
+                if (!this.state.audioObjects) return;
+                this.state.audioObjects.gainNode.gain.value = value;
+              }} />
+          </WithLabel>
           <WithLabel id='use-unicode'>
             <input
               type='checkbox'
@@ -157,7 +171,7 @@ export default class Home extends Component {
           <Player
             className={styles.content}
             pool={this.state.pool}
-            audioContext={this.state.audioContext}
+            audioObjects={this.state.audioObjects}
             noRepeatNum={this.state.noRepeatNum}
             rowsBefore={this.state.rowsBefore}
             rowsAfter={this.state.rowsAfter}

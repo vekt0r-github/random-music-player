@@ -358,7 +358,7 @@ const Player = (props) => {
       <div id="player-container" className={styles.playerContainer}>
         <PlayerAudio
           nowPlaying={nowPlaying}
-          audioContext={props.audioContext}
+          audioObjects={props.audioObjects}
           playPrev={playPrev}
           playNext={playNext}
           useUnicode={props.useUnicode}
