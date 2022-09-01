@@ -9,24 +9,24 @@
 
 const express = require("express");
 const puppeteer = require("puppeteer");
-// const fetch = require("node-fetch");
 const request = require('request');
 
 // api endpoints: all these paths will be prefixed with "/api/"
 const router = express.Router();
 
+router.get("/proxy", async (req, res) => {
+  req.pipe(request.get(req.query.src)).pipe(res);
+});
+
 router.get("/songs/default", async (req, res) => {
-  data = await fetch("./data/songs.json");
+  const data = await fetch("./data/songs.json");
   res.send(data);
 });
 
 router.get("/songs/poollink", async (req, res) => {
   const poolLink = req.query.poolLink;
-  request.get(poolLink, (error, response, body) => {
-    if (!error && response.statusCode == 200) {
-      res.status(200).send(body);
-    }
-  });
+  const data = await fetch(poolLink);
+  res.send(data);
 });
 
 router.post("/songs/sul", async (req, res) => {

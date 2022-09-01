@@ -40,3 +40,4 @@ kete
 - sorting options
 - make width of table's right column constant
 - still need to fix memory being significantly higher than before
+- filter + play

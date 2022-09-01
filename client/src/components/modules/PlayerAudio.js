@@ -16,6 +16,7 @@ const PlayerAudio = (props) => {
    * 
    * props
    * nowPlaying: Song
+   * audioContext: AudioContext
    * playPrev: () => {}
    * playNext: () => {}
    * useUnicode: bool
@@ -41,6 +42,9 @@ const PlayerAudio = (props) => {
   useEffect(() => {
     if (!player.current) console.warn("player not mounted yet");
     player.current.volume = 0.1;
+    const context = props.audioContext;
+    const sourceNode = context.createMediaElementSource(player.current);
+    sourceNode.connect(context.destination);
   }, []);
 
   useEffect(() => {

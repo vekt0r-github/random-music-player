@@ -239,3 +239,17 @@ export const objectMatchesQueries = (obj, queries, options={}) => {
   }
   return true; // all portions matched
 }
+
+/**
+ * converts all urls in pool to be reverse proxied through backend
+ * @param {Song[]} pool 
+ * @returns pool with each song having a reverse proxied path
+ */
+export const attachReverseProxy = (pool) => {
+  console.log(pool)
+  const host = `${window.location.protocol}//${window.location.host}`;
+  return pool.map((song) => ({
+    ...song,
+    path: `${host}/api/proxy?src=${encodeURIComponent(song.path)}`,
+  }));
+}

@@ -8,6 +8,7 @@ import Player from "../modules/Player.js";
 import defaultPool from '../../data/songs.json';
 
 import { IntegerInput, WithLabel } from "../../utils/components.js";
+import { attachReverseProxy } from "../../utils/functions.js";
 
 import "../../utilities.css";
 import styles from "./Home.css";
@@ -32,10 +33,12 @@ export default class Home extends Component {
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
       pool: [], // props for Player.js
+      audioContext: undefined,
       noRepeatNum: 100,
       rowsBefore: 1,
       rowsAfter: 10,
       useUnicode: true,
+      volume: 0.1,
     };
 
     this.sulLoader = React.createRef();
@@ -54,14 +57,22 @@ export default class Home extends Component {
     for (const url of this.state.activeURLs) {
       URL.revokeObjectURL(url);
     }
+    // create and unlock the audio context
+    const context = new AudioContext();
+    const emptyBuffer = context.createBuffer(1, 1, 22050);
+    const emptySource = context.createBufferSource();
+    emptySource.buffer = emptyBuffer;
+    emptySource.connect(context.destination);
+    emptySource.start(0);
+
     let activeURLs = [];
     let pool = [];
     const mode = this.state.mode;
     if (mode === Modes.DEFAULT) {
-      pool = defaultPool;
+      pool = attachReverseProxy(defaultPool);
     } else if (mode === Modes.SUL) {
       pool = await this.sulLoader.current.makePool();
-      activeURLs = pool.map(song => song.url);
+      pool = attachReverseProxy(pool);
     } else if (mode === Modes.FOLDER) {
       pool = await this.folderLoader.current.makePool();
       activeURLs = pool.map(song => song.url);
@@ -74,6 +85,7 @@ export default class Home extends Component {
     this.setState({
       activeURLs: activeURLs,
       pool: pool,
+      audioContext: context,
       noRepeatNum: noRepeatNum,
     });
   };
@@ -145,6 +157,7 @@ export default class Home extends Component {
           <Player
             className={styles.content}
             pool={this.state.pool}
+            audioContext={this.state.audioContext}
             noRepeatNum={this.state.noRepeatNum}
             rowsBefore={this.state.rowsBefore}
             rowsAfter={this.state.rowsAfter}

@@ -79,14 +79,14 @@ export default class SulLoader extends Component {
         }
       }
       const {name, ext} = splitFilename(song.fileName);
-      if (!isAudioExtension(ext)) { return null; }
+      if (!isAudioExtension(ext)) { return undefined; }
       return {
         path: song.url,
         displayName: name,
       };
     }));
     if (dataFileStatus === "exists") { return; }
-    pool = pool.filter(song => song !== null);
+    pool = pool.filter(song => song !== undefined);
     if (dataFileStatus === "partial") {
       const map = {}; // structure mapping displayName(Unicode)s to full objects...
       [...partialPool, ...pool].forEach((song) => { // "partialPool" has the correct info and should go first
