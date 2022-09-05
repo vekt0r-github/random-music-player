@@ -117,7 +117,6 @@ const Player = (props) => {
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
   
   const availableIndices = useRef(new Set(props.pool.keys()));
-  const nowPlaying = playerState.song;
   const setPlayerStatus = (status) => {
     return setPlayerState((state) => ({...state, status}));
   };
@@ -351,13 +350,13 @@ const Player = (props) => {
     },
   ];
 
-  if (!nowPlaying) return <></>
+  if (!playerState.song) return <></>
 
   return (
     <div className={styles.playerDisplayContainer}>
       <div id="player-container" className={styles.playerContainer}>
         <PlayerAudio
-          nowPlaying={nowPlaying}
+          nowPlaying={playerState.song}
           audioContext={props.audioContext}
           playPrev={playPrev}
           playNext={playNext}

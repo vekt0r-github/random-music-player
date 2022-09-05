@@ -94,13 +94,19 @@ const PlayerAudio = (props) => {
         <button
           type="button"
           id="prev"
-          className={styles.button}
+          className={styles.lrButton}
           onClick={() => playPrev()}
           >&lt;</button>
+        <button
+          type="button"
+          id="prev"
+          className={styles.refreshButton}
+          onClick={() => play()}
+          >⟳</button>
         <button 
           type="button" 
           id="next" 
-          className={styles.button}
+          className={styles.lrButton}
           onClick={() => playNext()}
           >&gt;</button>
       </div>

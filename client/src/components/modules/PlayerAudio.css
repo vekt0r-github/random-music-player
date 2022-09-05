@@ -12,7 +12,18 @@
 .button {
   composes: u-button from "../../utilities.css";
   background-color: #ff99e8;
+}
+
+.lrButton {
+  composes: button;
   font-size: 22px;
+  width: 100px;
+}
+
+.refreshButton {
+  composes: button;
+  font-size: 17px;
+  width: 40px;
 }
 
 .button + .button {

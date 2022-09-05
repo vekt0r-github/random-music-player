@@ -53,6 +53,7 @@ button:focus + [role="tooltip"] {
   border-width: 2px;
   border-style: outset;
   border-color: #777;
+  vertical-align: top;
 }
 
 .u-button:active {
