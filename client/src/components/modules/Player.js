@@ -19,11 +19,6 @@ export const Direction = Object.freeze({
   PREV: "prev",
 });
 
-export const Status = Object.freeze({
-  QUEUED: "playqueued",
-  PLAYING: "playing",
-});
-
 /**
  * toggles availability
  * if oldIndex == newIndex, then it will be not available
@@ -108,33 +103,20 @@ const Player = (props) => {
     list: Lists.PLAYLIST, // active list
     index: 0, // index on current list
     playlistIndex: 0, // index on playlist, for when pool is playing
-  }); 
-  const [playerState, setPlayerState] = useStatePromise({
-    song: undefined,
-    status: Status.QUEUED,
   });
   const [poolSearchQuery, setPoolSearchQuery] = useStatePromise("");
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
   
+  const audioRef = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
-  const setPlayerStatus = (status) => {
-    return setPlayerState((state) => ({...state, status}));
-  };
+  const nowPlaying = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
   
-  useEffect(() => { // compute current song after each position change
-    const song = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
-    const promises = [];
-    if (song && !song.path) promises.push(song.addPath());
-    Promise.all(promises).then(() => {
-      setPlayerState({
-        song: song,
-        status: Status.QUEUED,
-      });
-    });
-    if (song && song.removePath) { // clean up path to prevent memory leak
-      return song.removePath.bind(song);
+  useEffect(() => { // compute current song path, if necessary
+    if (nowPlaying && !nowPlaying.path) nowPlaying.addPath();
+    if (nowPlaying && nowPlaying.removePath) { // clean up path to prevent memory leak
+      return nowPlaying.removePath.bind(nowPlaying);
     }
-  }, [selectedLoc, playlist]); // playlist needed to render after first buffer
+  }, [nowPlaying]); // playlist needed to render after first buffer
 
   const pool = useMemo(() => {
     return props.pool.map((song, index) => {
@@ -233,24 +215,22 @@ const Player = (props) => {
   });
   useEffect(rebuffer, [props.noRepeatNum]);
 
-  const playCurr = () => setPlayerStatus(Status.QUEUED);
-
   const playFrom = (list, index) => {
     dispatchSelectedLoc({
       set: {list, index},
-    });
+    }).then(() => audioRef.current.play());
   };
 
   const playPrev = () => {
     dispatchSelectedLoc({
       seek: {direction: Direction.PREV},
-    });
+    }).then(() => audioRef.current.play());
   };
 
   const playNext = () => {
     dispatchSelectedLoc({
       seek: {direction: Direction.NEXT},
-    });
+    }).then(() => audioRef.current.play());
   };
 
   const removeSong = useCallback((relativeNum) => { // relative to currSong
@@ -350,19 +330,18 @@ const Player = (props) => {
     },
   ];
 
-  if (!playerState.song) return <></>
+  if (!nowPlaying) return <></>
 
   return (
     <div className={styles.playerDisplayContainer}>
       <div id="player-container" className={styles.playerContainer}>
         <PlayerAudio
-          nowPlaying={playerState.song}
+          nowPlaying={nowPlaying}
           audioContext={props.audioContext}
           playPrev={playPrev}
           playNext={playNext}
           useUnicode={props.useUnicode}
-          status={playerState.status}
-          setStatus={setPlayerStatus}
+          audioRef={audioRef}
         />
       </div>
       <div id="display-container" className={styles.displayContainer}>

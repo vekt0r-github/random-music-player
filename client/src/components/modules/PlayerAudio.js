@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useCallback } from "react";
 
-import { Status } from "./Player.js";
-
 import { useStatePromise } from "../../utils/hooks.js";
 import { IntegerInput, WithLabel } from "../../utils/components.js";
 
@@ -20,39 +18,28 @@ const PlayerAudio = (props) => {
    * playPrev: () => {}
    * playNext: () => {}
    * useUnicode: bool
-   * status: enum
-   * setStatus
+   * playerRef: React.MutableRefObject
    */
   const [songsLeftActive, setSongsLeftActive] = useStatePromise(false); // controls whether songsLeft applies
   const [songsLeft, setSongsLeft] = useStatePromise(0); // how many more songs to autoplay before stopping
 
-  const {nowPlaying, playPrev, playNext, useUnicode, status, setStatus} = props;
+  const {nowPlaying, audioContext, playPrev, playNext, useUnicode, audioRef} = props;
   const path = nowPlaying.path;
 
-  const player = useRef();
   const songsLeftInput = useRef();
 
-  const play = () => {
-    player.current.pause();
-    player.current.currentTime = 0;
-    player.current.play();
-    setStatus(Status.PLAYING);
+  const replay = () => {
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    audioRef.current.play();
   }
 
   useEffect(() => {
-    if (!player.current) console.warn("player not mounted yet");
-    player.current.volume = 0.1;
-    const context = props.audioContext;
-    const sourceNode = context.createMediaElementSource(player.current);
-    sourceNode.connect(context.destination);
+    if (!audioRef.current) console.warn("player not mounted yet");
+    audioRef.current.volume = 0.1;
+    const sourceNode = audioContext.createMediaElementSource(audioRef.current);
+    sourceNode.connect(audioContext.destination);
   }, []);
-
-  useEffect(() => {
-    if (!player.current) return;
-    if (status == Status.QUEUED && player.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-      play();
-    }
-  }, [path, status]);
 
   const autoplayNext = useCallback(async () => {
     if (!songsLeftActive) { playNext(); return; }
@@ -75,12 +62,9 @@ const PlayerAudio = (props) => {
   return (
     <div className={styles.audioContainer}>
       <audio 
-        ref={player} 
-        id="player" 
+        ref={audioRef} 
+        id="audio" 
         src={path}
-        onCanPlay={() => {
-          if (status === Status.QUEUED) play();
-        }}
         onError={() => playNext()}
         onEnded={() => autoplayNext()}
         type="audio/mpeg"
@@ -100,8 +84,8 @@ const PlayerAudio = (props) => {
         <button
           type="button"
           id="prev"
-          className={styles.refreshButton}
-          onClick={() => play()}
+          className={styles.replayButton}
+          onClick={() => replay()}
           >⟳</button>
         <button 
           type="button" 

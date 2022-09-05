@@ -87,6 +87,11 @@ export default class Home extends Component {
       pool: pool,
       audioContext: context,
       noRepeatNum: noRepeatNum,
+    }, () => {
+      // actually stupid; waits 100ms to skip a render cycle
+      // because PlayerAudio's <audio> doesn't exist until after the render
+      // and to autoplay on iOS this must be tied to the click action
+      setTimeout(() => document.getElementById("audio").play(), 100);
     });
   };
 
