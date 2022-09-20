@@ -103,6 +103,7 @@ const Player = (props) => {
     list: Lists.PLAYLIST, // active list
     index: 0, // index on current list
     playlistIndex: 0, // index on playlist, for when pool is playing
+    nowPlaying: undefined, // computed field
   });
   const [poolSearchQuery, setPoolSearchQuery] = useStatePromise("");
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
@@ -110,13 +111,29 @@ const Player = (props) => {
   const audioRef = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
   const nowPlaying = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
+
+  const onSelectedLocChange = async (newSelectedLoc, newPlaylist) => {
+    // play() must be invoked as a direct result of onclick/onended
+    // to appease iOS, and nowPlaying.path must be computed before that,
+    // so this cannot be part of a useEffect()
+    newSelectedLoc = newSelectedLoc ?? selectedLoc;
+    newPlaylist = newPlaylist ?? playlist;
+    const currentList = newSelectedLoc.list === Lists.PLAYLIST ? newPlaylist : pool;
+    const nowPlaying = currentList[newSelectedLoc.index];
+    if (nowPlaying && !nowPlaying.path) {
+      await nowPlaying.addPath(); // compute current song path, if necessary
+    }
+    if (nowPlaying) {
+      audioRef.current.src = nowPlaying.path;
+      audioRef.current.play()
+    }
+  };
   
-  useEffect(() => { // compute current song path, if necessary
-    if (nowPlaying && !nowPlaying.path) nowPlaying.addPath();
-    if (nowPlaying && nowPlaying.removePath) { // clean up path to prevent memory leak
+  useEffect(() => { // clean up path to prevent memory leak
+    if (nowPlaying && nowPlaying.removePath) {
       return nowPlaying.removePath.bind(nowPlaying);
     }
-  }, [nowPlaying]); // playlist needed to render after first buffer
+  }, [nowPlaying]);
 
   const pool = useMemo(() => {
     return props.pool.map((song, index) => {
@@ -218,19 +235,19 @@ const Player = (props) => {
   const playFrom = (list, index) => {
     dispatchSelectedLoc({
       set: {list, index},
-    }).then(() => audioRef.current.play());
+    }).then((selectedLoc) => onSelectedLocChange(selectedLoc));
   };
 
   const playPrev = () => {
     dispatchSelectedLoc({
       seek: {direction: Direction.PREV},
-    }).then(() => audioRef.current.play());
+    }).then((selectedLoc) => onSelectedLocChange(selectedLoc));
   };
 
   const playNext = () => {
     dispatchSelectedLoc({
       seek: {direction: Direction.NEXT},
-    }).then(() => audioRef.current.play());
+    }).then((selectedLoc) => onSelectedLocChange(selectedLoc));
   };
 
   const removeSong = useCallback((relativeNum) => { // relative to currSong
@@ -271,16 +288,17 @@ const Player = (props) => {
     availableIndices.current = new Set(props.pool.keys());
     setPoolSearchQuery("");
     setFilterToQuery(false);
-    await buffer({
+    const newPlaylist = await buffer({
       playlist: [],
       index: 0,
     });
-    await dispatchSelectedLoc({
+    const newSelectedLoc = await dispatchSelectedLoc({
       set: {
         list: Lists.PLAYLIST,
         index: 0,
       },
     });
+    onSelectedLocChange(newSelectedLoc, newPlaylist);
   };
   useEffect(reset, [props.pool]);
 

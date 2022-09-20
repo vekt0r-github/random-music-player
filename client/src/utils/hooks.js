@@ -10,7 +10,7 @@ export function useReducerPromise(reducer, initialArg, init) {
     return new Promise((resolve, reject) => {
       resolveRef.current = resolve;
       if (Object.is(reducer(stateRef.current, action), stateRef.current)) {
-        resolve();
+        resolve(stateRef.current);
       }
     })
   }, []); // keep object reference stable, exactly like `useState`
@@ -19,7 +19,7 @@ export function useReducerPromise(reducer, initialArg, init) {
     stateRef.current = state;
     // only resolve promise on state *updates*
     if (resolveRef.current) {
-      resolveRef.current(); // resolve promise
+      resolveRef.current(stateRef.current); // resolve promise
       resolveRef.current = null; // reset after execution
     }
   }, [state]);

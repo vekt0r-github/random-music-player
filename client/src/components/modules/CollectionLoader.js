@@ -153,9 +153,11 @@ export default class CollectionLoader extends Component {
       }
       const song = {
         async addPath() {
+          console.log(this)
           this.path = await makeURL();
         },
         removePath() {
+          console.log(this)
           URL.revokeObjectURL(this.path);
           delete this.path;
         },

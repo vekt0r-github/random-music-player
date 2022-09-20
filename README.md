@@ -28,16 +28,14 @@ modes currently supported:
 ## todo
 kete
 - move songs around
-- sort pool list
-- or use api https://github.com/remanifest/s-ul-curl-uploader
+- pool list sorting options
 - reimplement scrollIfNeeded for pool box
 - performance issues:
   - pool search component keying
   - pool loading dynamic url assignment for FolderSelect
   - dynamic url assignment should preload playlist (if slow)
   - Possible EventEmitter memory leak detected.
-- fix width depending on whether textbox is filled out
-- sorting options
+  - still need to fix memory being significantly higher than before
 - make width of table's right column constant
-- still need to fix memory being significantly higher than before
 - filter + play
+- add data file link to url support (or have browser save link)

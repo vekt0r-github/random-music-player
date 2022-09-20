@@ -24,7 +24,6 @@ const PlayerAudio = (props) => {
   const [songsLeft, setSongsLeft] = useStatePromise(0); // how many more songs to autoplay before stopping
 
   const {nowPlaying, audioContext, playPrev, playNext, useUnicode, audioRef} = props;
-  const path = nowPlaying.path;
 
   const songsLeftInput = useRef();
 
@@ -63,8 +62,7 @@ const PlayerAudio = (props) => {
     <div className={styles.audioContainer}>
       <audio 
         ref={audioRef} 
-        id="audio" 
-        src={path}
+        id="audio"
         onError={() => playNext()}
         onEnded={() => autoplayNext()}
         type="audio/mpeg"
