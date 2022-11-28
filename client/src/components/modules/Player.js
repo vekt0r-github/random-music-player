@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { useReducerPromise, useStatePromise } from "../../utils/hooks.js";
 
 import PlayerAudio from "../modules/PlayerAudio.js";
-import { Table, VirtualizedTable } from "./Table.js";
+import { Table, VirtualizedTable, CellStyles } from "./Table.js";
 
 import { randomChoice, getMaybeUnicode, SearchField, parseQueryString, objectMatchesQueries } from "../../utils/functions.js";
 import { WithLabel } from "../../utils/components.js";
@@ -110,7 +110,6 @@ const Player = (props) => {
   
   const audioRef = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
-  const nowPlaying = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
 
   const onSelectedLocChange = async (newSelectedLoc, newPlaylist) => {
     // play() must be invoked as a direct result of onclick/onended
@@ -129,12 +128,14 @@ const Player = (props) => {
     }
   };
   
+  // checks if previous song needed any cleanup
   useEffect(() => { // clean up path to prevent memory leak
     if (nowPlaying && nowPlaying.removePath) {
       return nowPlaying.removePath.bind(nowPlaying);
     }
   }, [nowPlaying]);
 
+  // computes extra properties on each song in pool
   const pool = useMemo(() => {
     return props.pool.map((song, index) => {
       const maybeUni = (property) => (useUnicode) => 
@@ -148,6 +149,7 @@ const Player = (props) => {
       }; 
     });
   }, [props.pool]);
+  const nowPlaying = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
 
   poolSearchResults.current = useMemo(() => {
     // find current search results to display
@@ -329,6 +331,7 @@ const Player = (props) => {
       return {
         text: "x",
         onclick: () => removeSong(diff),
+        classes: [CellStyles.THIN],
       };
     },
   ];
@@ -344,6 +347,7 @@ const Player = (props) => {
       return {
         text: "+",
         onclick: () => insertSong(1, song),
+        classes: [CellStyles.THIN],
       }
     },
   ];

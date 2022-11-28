@@ -36,6 +36,4 @@ kete
   - dynamic url assignment should preload playlist (if slow)
   - Possible EventEmitter memory leak detected.
   - still need to fix memory being significantly higher than before
-- make width of table's right column constant
-- filter + play
 - add data file link to url support (or have browser save link)
