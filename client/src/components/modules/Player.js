@@ -109,6 +109,7 @@ const Player = (props) => {
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
   
   const audioRef = useRef();
+  const poolTableRef = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
 
   const onSelectedLocChange = async (newSelectedLoc, newPlaylist) => {
@@ -178,6 +179,13 @@ const Player = (props) => {
       });
     }).map(song => song.index);
   }, [pool, poolSearchQuery]); // [number] indices filtered from pool
+
+  useEffect(() => {
+    if (!(poolSearchResults.current && poolTableRef.current)) return;
+    poolTableRef.current.scrollIntoView({
+      index: poolSearchResults.current.indexOf(selectedLoc.index),
+    });
+  }, [pool, poolSearchQuery])
 
   /**
    * generates future songs, up to buffer specified by props.rowsAfter
@@ -337,10 +345,10 @@ const Player = (props) => {
   ];
 
   const poolColumns = [
-    (song, poolIndex) => { // song name
+    (song) => { // song name
       return {
         text: song.getDisplayName(props.useUnicode),
-        onclick: () => playFrom(Lists.POOL, poolIndex),
+        onclick: () => playFrom(Lists.POOL, song.index),
       };
     },
     (song) => { // add button
@@ -374,7 +382,7 @@ const Player = (props) => {
             id="playlist"
             rows={playlistSlice}
             columns={playlistColumns}
-            selected={selectedLoc.list === Lists.PLAYLIST ? props.rowsBefore : null}
+            selected={i => (selectedLoc.list === Lists.PLAYLIST && i === props.rowsBefore)}
             maxHeight={360}
           />
         </div>
@@ -397,11 +405,16 @@ const Player = (props) => {
             </>
           </WithLabel>
           <VirtualizedTable
+            ref={poolTableRef}
             id="pool"
             rows={pool}
             columns={poolColumns}
             filter={(row, index) => poolSearchResults.current.includes(index)}
-            selected={selectedLoc.list === Lists.POOL ? selectedLoc.index : null}
+            selected={(i) => {
+              if (selectedLoc.list !== Lists.POOL) return false;
+              // bad and also assumes search results are in order
+              return poolSearchResults.current[i] === selectedLoc.index;
+            }}
             maxHeight={360}
           />
         </div>

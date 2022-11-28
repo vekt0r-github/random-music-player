@@ -18,7 +18,7 @@ const parseCurrentURL = () => {
   const url = window.location.href;
   const match = url.match(/(?<baseUrl>(https?:\/\/)?[^\/]+)(?<params>(\/[^\/]+)*)\/?/);
   if (!match) {
-    console.log("no match for current url: " + url);
+    console.warn("no match for current url: " + url);
     return [url, undefined];
   }
   const params = match.groups.params.split("/").slice(1);

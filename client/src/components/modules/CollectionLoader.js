@@ -231,7 +231,7 @@ export default class CollectionLoader extends Component {
       collectionSelectTable = <Table
         rows={this.state.collections}
         columns={collectionColumns}
-        selected={this.state.selectedCollection}
+        selected={i => (i === this.state.selectedCollection)}
         maxHeight={360}
       />;
     }
