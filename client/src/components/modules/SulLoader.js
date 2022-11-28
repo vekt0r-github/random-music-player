@@ -15,7 +15,8 @@ const Messages = Object.freeze({
 });
 
 const parseCurrentURL = () => {
-  const url = window.location.href;
+  let url = window.location.href;
+  if (url.endsWith("/")) url = url.slice(0, -1);
   const match = url.match(/(?<baseUrl>(https?:\/\/)?[^\/]+)(?<params>(\/[^\/]+)*)\/?/);
   if (!match) {
     console.warn("no match for current url: " + url);
