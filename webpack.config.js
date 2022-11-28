@@ -84,6 +84,7 @@ module.exports = {
     static: "./client/dist",
     hot: true,
     proxy: {
+      "*": "http://localhost:3000", // idk if this is sketchy
       "/api": "http://localhost:3000",
       "/socket.io/*": {
         target: "http://localhost:3000",

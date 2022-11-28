@@ -14,18 +14,13 @@ const request = require('request');
 // api endpoints: all these paths will be prefixed with "/api/"
 const router = express.Router();
 
+// just sends out a get request to src
 router.get("/proxy", async (req, res) => {
   req.pipe(request.get(req.query.src)).pipe(res);
 });
 
 router.get("/songs/default", async (req, res) => {
   const data = await fetch("./data/songs.json");
-  res.send(data);
-});
-
-router.get("/songs/poollink", async (req, res) => {
-  const poolLink = req.query.poolLink;
-  const data = await fetch(poolLink);
   res.send(data);
 });
 

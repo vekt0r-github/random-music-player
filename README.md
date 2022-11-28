@@ -36,4 +36,4 @@ kete
   - dynamic url assignment should preload playlist (if slow)
   - Possible EventEmitter memory leak detected.
   - still need to fix memory being significantly higher than before
-- add data file link to url support (or have browser save link)
+- search indexing still broken

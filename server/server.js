@@ -35,7 +35,7 @@ const reactPath = path.resolve(__dirname, "..", "client", "dist");
 app.use(express.static(reactPath));
 
 // for all other routes, render index.html and let react router handle it
-app.get("/", (req, res) => {
+app.get("*", (req, res) => {
   res.sendFile(path.join(reactPath, "index.html"));
 });
 

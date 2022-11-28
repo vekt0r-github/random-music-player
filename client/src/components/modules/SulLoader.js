@@ -14,6 +14,19 @@ const Messages = Object.freeze({
   ERROR: (msg) => `an error occurred: ${msg}`,
 });
 
+const parseCurrentURL = () => {
+  const url = window.location.href;
+  const match = url.match(/(?<baseUrl>(https?:\/\/)?[^\/]+)(?<params>(\/[^\/]+)*)\/?/);
+  if (!match) {
+    console.log("no match for current url: " + url);
+    return [url, undefined];
+  }
+  const params = match.groups.params.split("/").slice(1);
+  if (params.length !== 2) return [url, undefined];
+  const [username, fileId] = params;
+  return [match.groups.baseUrl, `https://${username}.s-ul.eu/${fileId}`];
+}
+
 /**
  * Define the "SulLoader" component as a class.
  */
@@ -21,16 +34,17 @@ export default class SulLoader extends Component {
   // makes props available in this component
   constructor(props) {
     super(props);
+    const poolLink = parseCurrentURL()[1] ?? '';
     this.state = {
       status: Messages.IDLE,
       username: '',
       password: '',
-      poolLink: '',
+      poolLink,
       pool: undefined,
     };
   }
 
-  getPoolFrom = /* async */ (poolLink) => get('/api/songs/poollink', { poolLink });
+  getPoolFrom = /* async */ (poolLink) => get('/api/proxy', { src: poolLink });
 
   initializePoolFromFile = async (poolLink) => {
     const fail = (msg) => this.setState({
@@ -125,6 +139,14 @@ export default class SulLoader extends Component {
   render = () => {
     const loaded = this.state.status === Messages.LOADED;
     const statusDisplay = <div className={styles.status}>{this.state.status}</div>;
+    
+    // this is a link to this site but with the data file autofilled, if matches s-ul format
+    let permalink;
+    const poolLinkMatches = this.state.poolLink.match(/(\w+)\.s-ul\.eu\/(\w+)/);
+    if (poolLinkMatches) {
+      const [username, fileId] = poolLinkMatches.slice(1);
+      permalink = `${parseCurrentURL()[0]}/${username}/${fileId}`;
+    }
     return (
       <form className={styles.loader} onSubmit={(e) => e.preventDefault()}>
         <WithLabel id='data-file-link'>
@@ -137,6 +159,7 @@ export default class SulLoader extends Component {
               });
             }} />
         </WithLabel>
+        {permalink ? <a href={permalink}>permalink to auto-populate data file</a> : null}
         <p>OR:</p>
         <WithLabel id='username'>
           <input
