@@ -2,7 +2,7 @@ import React, { Component } from "react";
 
 import { WithLabel } from "../../utils/components.js";
 
-import { splitFilename, isAudioExtension } from "../../utils/functions.js";
+import { splitFilename, isAudioExtension, toSafeFilename } from "../../utils/functions.js";
 import { get, post } from "../../utils/requests.js";
 
 import styles from "./SulLoader.css";
@@ -97,17 +97,18 @@ export default class SulLoader extends Component {
       if (!isAudioExtension(ext)) { return undefined; }
       return {
         path: song.url,
-        displayName: name,
+        displayName: name, // toSafeFilename is idempotent, so okay i think
       };
     }));
     if (dataFileStatus === "exists") { return; }
     pool = pool.filter(song => song !== undefined);
     if (dataFileStatus === "partial") {
-      const map = {}; // structure mapping displayName(Unicode)s to full objects...
+      const map = {}; // structure mapping filename encoding of (displayName(Unicode)s) to full objects...
       [...partialPool, ...pool].forEach((song) => { // "partialPool" has the correct info and should go first
-        [song.displayName, song.displayNameUnicode].filter(x => x).forEach((name) => {
+        // [song.displayName, song.displayNameUnicode].filter(x => x).forEach((name) => {
+          const name = toSafeFilename(song, this.props.useUnicode);
           map[name] = { ...song, ...map[name] }; 
-        });
+        // });
       });
       pool = Object.values(map).filter(song => song.path); // ...but only the right ones get path
     }

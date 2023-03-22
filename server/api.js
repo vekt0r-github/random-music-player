@@ -25,32 +25,45 @@ router.get("/songs/default", async (req, res) => {
 });
 
 router.post("/songs/sul", async (req, res) => {
-  const {username, password} = req.body;
-  const browser = await puppeteer.launch({args: ["--single-process", "--no-sandbox"]});
-  const page = await browser.newPage();
+  try {
+    const {username, password} = req.body;
+    const browser = await puppeteer.launch({args: ["--single-process", "--no-sandbox"]});
+    const page = await browser.newPage();
 
-  // Login
-  await page.goto("https://s-ul.eu/log-in");
-  await page.type('[id=username]', username);
-  await page.type('[id=password]', password);
-  await page.keyboard.press('Enter');
-  await page.waitForNavigation();
-  
-  // Get cookies
-  // const cookies = await page.cookies();
+    // Login
+    await page.goto("https://s-ul.eu/log-in");
+    await page.type('[id=username]', username);
+    await page.type('[id=password]', password);
+    await page.keyboard.press('Enter');
+    await page.waitForNavigation();
+    
+    // Get cookies
+    // const cookies = await page.cookies();
 
-  // get file list
-  await page.goto("https://s-ul.eu/files");
-  // console.log(await page.evaluate(() => document.body.innerHTML));
-  const songs = await page.evaluate((username) => {
-    let elements = document.querySelectorAll(`a[href^="https://${username}.s-ul.eu"]`);
-    elements = Array.prototype.slice.call(elements);
-    return elements.map((element) => ({
-      url: element.href,
-      fileName: element.innerText,
-    }))
-  }, username);
-  res.status(200).send({songs: songs});
+    // get file list
+    let songs = [];
+    for (let i = 1;; i++) {
+      await page.goto(`https://s-ul.eu/files?page=${i}`);
+      // console.log(await page.evaluate(() => document.body.innerHTML));
+      const currSongs = await page.evaluate((username) => {
+        let elements = document.querySelectorAll(`a[href^="https://${username}.s-ul.eu"]`);
+        elements = Array.prototype.slice.call(elements);
+        return elements.map((element) => ({
+          url: element.href,
+          fileName: element.innerText,
+        }))
+      }, username);
+      const songsUrls = songs.map(s => s.url);
+      if (currSongs.length && currSongs.every(song => !songsUrls.includes(song.url))) {
+        songs = [...songs, ...currSongs];
+      } else {
+        break;
+      }
+    }
+    res.status(200).send({songs: songs});
+  } catch (error) {
+    res.status(504);
+  }
 });
 
 // anything else falls to this "not found" case

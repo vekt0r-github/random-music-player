@@ -16,7 +16,6 @@
   "license": "ISC",
   "homepage": "",
   "engines": {
-    "npm": "8.x",
     "node": "18.x"
   },
   "dependencies": {

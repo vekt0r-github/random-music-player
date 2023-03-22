@@ -125,6 +125,7 @@ export default class Home extends Component {
         {this.state.mode === Modes.SUL ? 
           <SulLoader
             ref={this.sulLoader}
+            useUnicode={this.state.useUnicode}
             /> : null}
         {this.state.mode === Modes.FOLDER ? 
           <FolderLoader

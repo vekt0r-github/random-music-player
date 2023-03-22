@@ -29,6 +29,13 @@ export const addDisplayName = (song) => ({
     `${song.artistUnicode} - ${song.titleUnicode}` : undefined,
 });
 
+// update later if other edge cases come up
+// escape sequences should be idempotent
+export const toSafeFilename = (song, useUnicode) => {
+  const fn = `${(getMaybeUnicode(song, 'displayName', useUnicode))}.mp3`;
+  return fn.replace(/[\/\\:]/gi, '_');
+}
+
 /**
  * gets property from song, using the unicode version if
  * desired and available

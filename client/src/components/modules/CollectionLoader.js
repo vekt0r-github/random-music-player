@@ -14,7 +14,8 @@ import {
   getMaybeUnicode,
   readFileBinary,
   toBuffer,
-  getAudioHandle
+  getAudioHandle,
+  toSafeFilename,
 } from "../../utils/functions.js";
 
 import styles from "./CollectionLoader.css";
@@ -167,7 +168,12 @@ export default class CollectionLoader extends Component {
         title: beatmap.song_title,
         bpm: getBPM(beatmap.timing_points),
         length: beatmap.total_time / 1000,
-        ...beatmap // throw in everything else for searching purposes
+        creator_name: beatmap.creator_name,
+        difficulty: beatmap.difficulty,
+        osu_file_name: beatmap.osu_file_name,
+        song_source: beatmap.song_source,
+        song_tags: beatmap.song_tags,
+        // ...beatmap // throw in everything else for searching purposes
       }
       return addDisplayName(song);
     }));
@@ -176,6 +182,7 @@ export default class CollectionLoader extends Component {
 
   /**
    * download all beatmaps in selected collection as .zip
+   * use unicode must be the same setting as when reading files with s-ul later
    */
   downloadMusic = async () => {
     const pool = await this.makePool();
@@ -183,8 +190,11 @@ export default class CollectionLoader extends Component {
     let zip = new JSZip();
     await Promise.all(pool.map(async (song) => {
       const maybeUni = (prop) => getMaybeUnicode(song, prop, this.props.useUnicode);
+      await song.addPath();
       const blob = await fetch(song.path).then(r => r.blob());
-      const fn = `${maybeUni('displayName')}.mp3`;
+      song.removePath();
+      const fn = toSafeFilename(song, this.props.useUnicode);
+      console.log(blob.size)
       let file = new File([blob], fn);
       if (this.state.useMetadata) { // write metadata
         const bin = await readFileBinary(file);
