@@ -33,7 +33,6 @@ const toSafeFilename = (song) => {
 // no args: get songs.json file
 // args: get specific song (by index in songs.json)
 router.get("/songs/default", async (req, res) => {
-  
   fs.readFile(process.env.DEFAULT_DATA_FILE, (error, data) => {
     if (error) {
       res.status(500).send({msg: error.message});
@@ -48,12 +47,14 @@ router.get("/songs/default", async (req, res) => {
             res.status(500).send({msg: songError.message});
           } else {
             console.log(songData);
-            res.send(songData);
+            res.setHeader('content-type', 'audio/mpeg');
+            res.status(200).send(songData);
           }
         });
       } else {
         songsList = songsList.map((song, i) => ({...song, path: `/api/songs/default?song=${i}`}))
-        res.send(songsList);
+        res.setHeader('content-type', 'application/json');
+        res.status(200).send(songsList);
       }
     }
   });

@@ -22,6 +22,7 @@ const PlayerAudio = (props) => {
    */
   const [songsLeftActive, setSongsLeftActive] = useStatePromise(false); // controls whether songsLeft applies
   const [songsLeft, setSongsLeft] = useStatePromise(0); // how many more songs to autoplay before stopping
+  const [currentError, setCurrentError] = useStatePromise(null);
 
   const {nowPlaying, audioContext, playPrev, playNext, useUnicode, audioRef} = props;
 
@@ -60,10 +61,20 @@ const PlayerAudio = (props) => {
 
   return (
     <div className={styles.audioContainer}>
+      {currentError ? <div
+        className={styles.nowPlaying}
+        onClick={() => setCurrentError(null)}
+      >
+        {currentError}
+      </div> : null}
       <audio 
         ref={audioRef} 
         id="audio"
-        onError={() => playNext()}
+        onError={async (e) => {
+          console.log(e.currentTarget.error)
+          setCurrentError(`an error occurred for ${displayName}: ${e.currentTarget.error.message}`);
+          playNext();
+        }}
         onEnded={() => autoplayNext()}
         type="audio/mpeg"
         controls>

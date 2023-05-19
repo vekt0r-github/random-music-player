@@ -1,5 +1,10 @@
 import React, { useReducer, useCallback, useRef, useEffect } from 'react';
 
+/**
+ * same as react's useReducer but the setter function returns a promise
+ * args are the same as react useReducer
+ * @returns the two things useReducer returns, and stateRef
+ */
 export function useReducerPromise(reducer, initialArg, init) {
   const [state, dispatch] = useReducer(reducer, initialArg, init);
   const stateRef = useRef(null);
