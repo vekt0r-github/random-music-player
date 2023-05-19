@@ -5,10 +5,9 @@ import FolderLoader from "../modules/FolderLoader.js";
 import CollectionLoader from "../modules/CollectionLoader.js";
 import Player from "../modules/Player.js";
 
-import defaultPool from '../../data/songs.json';
-
 import { IntegerInput, WithLabel } from "../../utils/components.js";
 import { attachReverseProxy } from "../../utils/functions.js";
+import { get } from "../../utils/requests.js";
 
 import "../../utilities.css";
 import styles from "./Home.css";
@@ -69,7 +68,7 @@ export default class Home extends Component {
     let pool = [];
     const mode = this.state.mode;
     if (mode === Modes.DEFAULT) {
-      pool = attachReverseProxy(defaultPool);
+      pool = await get("/api/songs/default");
     } else if (mode === Modes.SUL) {
       pool = await this.sulLoader.current.makePool();
       pool = attachReverseProxy(pool);

@@ -31,6 +31,7 @@ export const addDisplayName = (song) => ({
 
 // update later if other edge cases come up
 // escape sequences should be idempotent
+// must stay consistent with the backend algorithm in api.js
 export const toSafeFilename = (song, useUnicode) => {
   const fn = `${(getMaybeUnicode(song, 'displayName', useUnicode))}.mp3`;
   return fn.replace(/[\/\\:]/gi, '_');

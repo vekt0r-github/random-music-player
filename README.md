@@ -37,3 +37,5 @@ kete
   - Possible EventEmitter memory leak detected.
   - still need to fix memory being significantly higher than before
 - search indexing still broken
+- the non-backup branch still has breaking bugs on mobile
+- UnhandledPromiseRejection: This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason "#<ErrorEvent>". keeps happening in backup

@@ -10,6 +10,9 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
 const request = require('request');
+var path = require('path');
+var fs = require('fs');
+require('dotenv').config();
 
 // api endpoints: all these paths will be prefixed with "/api/"
 const router = express.Router();
@@ -19,9 +22,41 @@ router.get("/proxy", async (req, res) => {
   req.pipe(request.get(req.query.src)).pipe(res);
 });
 
+// the assumption is that filenames on the server will be japanese
+// beyond that, must stay consistent with the frontend algorithm in utils/functions.js
+// filenames in the persistent dir might have to update if this is changed
+const toSafeFilename = (song) => {
+  const fn = `${song.displayNameUnicode}.mp3`;
+  return fn.replace(/[\/\\:]/gi, '_');
+}
+
+// no args: get songs.json file
+// args: get specific song (by index in songs.json)
 router.get("/songs/default", async (req, res) => {
-  const data = await fetch("./data/songs.json");
-  res.send(data);
+  
+  fs.readFile(process.env.DEFAULT_DATA_FILE, (error, data) => {
+    if (error) {
+      res.status(500).send({msg: error.message});
+    } else {
+      let songsList = JSON.parse(data);
+      if (req.query.song) {
+        const song = songsList[parseInt(req.query.song)];
+        const songPath = path.join(process.env.DEFAULT_DATA_DIR, toSafeFilename(song));
+        console.log(songPath)
+        fs.readFile(songPath, (songError, songData) => {
+          if (songError) {
+            res.status(500).send({msg: songError.message});
+          } else {
+            console.log(songData);
+            res.send(songData);
+          }
+        });
+      } else {
+        songsList = songsList.map((song, i) => ({...song, path: `/api/songs/default?song=${i}`}))
+        res.send(songsList);
+      }
+    }
+  });
 });
 
 router.post("/songs/sul", async (req, res) => {
