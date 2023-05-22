@@ -32,7 +32,6 @@ export default class Home extends Component {
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
       pool: [], // props for Player.js
-      audioContext: undefined,
       noRepeatNum: 100,
       rowsBefore: 1,
       rowsAfter: 10,
@@ -56,13 +55,6 @@ export default class Home extends Component {
     for (const url of this.state.activeURLs) {
       URL.revokeObjectURL(url);
     }
-    // create and unlock the audio context
-    const context = new AudioContext();
-    const emptyBuffer = context.createBuffer(1, 1, 22050);
-    const emptySource = context.createBufferSource();
-    emptySource.buffer = emptyBuffer;
-    emptySource.connect(context.destination);
-    emptySource.start(0);
 
     let activeURLs = [];
     let pool = [];
@@ -84,7 +76,6 @@ export default class Home extends Component {
     this.setState({
       activeURLs: activeURLs,
       pool: pool,
-      audioContext: context,
       noRepeatNum: noRepeatNum,
     }, () => {
       // actually stupid; waits 100ms to skip a render cycle
@@ -162,7 +153,6 @@ export default class Home extends Component {
           <Player
             className={styles.content}
             pool={this.state.pool}
-            audioContext={this.state.audioContext}
             noRepeatNum={this.state.noRepeatNum}
             rowsBefore={this.state.rowsBefore}
             rowsAfter={this.state.rowsAfter}

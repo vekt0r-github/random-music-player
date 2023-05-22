@@ -14,7 +14,6 @@ const PlayerAudio = (props) => {
    * 
    * props
    * nowPlaying: Song
-   * audioContext: AudioContext
    * playPrev: () => {}
    * playNext: () => {}
    * useUnicode: bool
@@ -24,7 +23,7 @@ const PlayerAudio = (props) => {
   const [songsLeft, setSongsLeft] = useStatePromise(0); // how many more songs to autoplay before stopping
   const [currentError, setCurrentError] = useStatePromise(null);
 
-  const {nowPlaying, audioContext, playPrev, playNext, useUnicode, audioRef} = props;
+  const {nowPlaying, playPrev, playNext, useUnicode, audioRef} = props;
 
   const songsLeftInput = useRef();
 
@@ -37,8 +36,6 @@ const PlayerAudio = (props) => {
   useEffect(() => {
     if (!audioRef.current) console.warn("player not mounted yet");
     audioRef.current.volume = 0.1;
-    const sourceNode = audioContext.createMediaElementSource(audioRef.current);
-    sourceNode.connect(audioContext.destination);
   }, []);
 
   useEffect(() => {

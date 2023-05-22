@@ -70,7 +70,6 @@ const Player = (props) => {
    * 
    * props
    * pool: [Song]
-   * audioContext: AudioContext
    * noRepeatNum: Number
    * rowsBefore: Number
    * rowsAfter: Number
@@ -374,7 +373,6 @@ const Player = (props) => {
       <div id="player-container" className={styles.playerContainer}>
         <PlayerAudio
           nowPlaying={nowPlaying}
-          audioContext={props.audioContext}
           playPrev={playPrev}
           playNext={playNext}
           useUnicode={props.useUnicode}

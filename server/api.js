@@ -41,12 +41,10 @@ router.get("/songs/default", async (req, res) => {
       if (req.query.song) {
         const song = songsList[parseInt(req.query.song)];
         const songPath = path.join(process.env.DEFAULT_DATA_DIR, toSafeFilename(song));
-        console.log(songPath)
         fs.readFile(songPath, (songError, songData) => {
           if (songError) {
             res.status(500).send({msg: songError.message});
           } else {
-            console.log(songData);
             res.setHeader('content-type', 'audio/mpeg');
             res.status(200).send(songData);
           }
