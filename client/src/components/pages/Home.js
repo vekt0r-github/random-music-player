@@ -27,7 +27,7 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      mode: Modes.SUL,
+      mode: Modes.DEFAULT,
       activeURLs: [], // folder select
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
@@ -80,7 +80,7 @@ export default class Home extends Component {
       activeURLs = pool.map(song => song.url);
     }
     const noRepeatNum = Math.min(this.state.noRepeatNum, pool.length - 1);
-    this.noRepeatNumInput.current.setCurrValue(noRepeatNum);
+    this.noRepeatNumInput.current.setCurrValue(() => noRepeatNum);
     this.setState({
       activeURLs: activeURLs,
       pool: pool,
@@ -115,8 +115,8 @@ export default class Home extends Component {
         <h1>random music player</h1>
         <div className={styles.content}>
           <select id={styles.modes} value={this.state.mode} onChange={this.onModeChange}>
-            <option value={Modes.SUL}>s-ul songs</option>
             <option value={Modes.DEFAULT}>default songs</option>
+            <option value={Modes.SUL}>s-ul songs</option>
             <option value={Modes.FOLDER}>folder select</option>
             <option value={Modes.OSU}>osu! collection</option>
           </select>

@@ -112,12 +112,14 @@ const Player = (props) => {
   const poolTableRef = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
 
-  const onSelectedLocChange = async (newSelectedLoc, newPlaylist) => {
+  /**
+   * whenever the song changes, this is responsible for playing it
+   * both arguments are required, currently
+   */
+  const onSelectedLocChange = useCallback(async (newSelectedLoc, newPlaylist) => {
     // play() must be invoked as a direct result of onclick/onended
     // to appease iOS, and nowPlaying.path must be computed before that,
     // so this cannot be part of a useEffect()
-    newSelectedLoc = newSelectedLoc ?? selectedLoc;
-    newPlaylist = newPlaylist ?? playlist;
     const currentList = newSelectedLoc.list === Lists.PLAYLIST ? newPlaylist : pool;
     const nowPlaying = currentList[newSelectedLoc.index];
     if (nowPlaying && !nowPlaying.path) {
@@ -125,9 +127,10 @@ const Player = (props) => {
     }
     if (nowPlaying) {
       audioRef.current.src = nowPlaying.path;
+      audioRef.current.currentTime = 0;
       audioRef.current.play()
     }
-  };
+  }, [selectedLoc, pool]);
   
   // checks if previous song needed any cleanup
   useEffect(() => { // clean up path to prevent memory leak
@@ -243,21 +246,25 @@ const Player = (props) => {
   useEffect(rebuffer, [props.noRepeatNum]);
 
   const playFrom = (list, index) => {
+    // handle bailing out of state updates manually
+    // otherwise callback will still replay the song
+    if (list == selectedLoc.list && index == selectedLoc.index) return;
     dispatchSelectedLoc({
       set: {list, index},
-    }).then((selectedLoc) => onSelectedLocChange(selectedLoc));
+    }).then((selectedLoc) => onSelectedLocChange(selectedLoc, playlist));
   };
 
   const playPrev = () => {
+    if (selectedLoc.list == Lists.PLAYLIST && selectedLoc.index == 0) return;
     dispatchSelectedLoc({
       seek: {direction: Direction.PREV},
-    }).then((selectedLoc) => onSelectedLocChange(selectedLoc));
+    }).then((selectedLoc) => onSelectedLocChange(selectedLoc, playlist));
   };
 
   const playNext = () => {
     dispatchSelectedLoc({
       seek: {direction: Direction.NEXT},
-    }).then((selectedLoc) => onSelectedLocChange(selectedLoc));
+    }).then((selectedLoc) => onSelectedLocChange(selectedLoc, playlist));
   };
 
   const removeSong = useCallback((relativeNum) => { // relative to currSong
@@ -274,7 +281,7 @@ const Player = (props) => {
     }
     const newPlaylist = [...playlist];
     newPlaylist.splice(index, 1);
-    buffer({playlist});
+    buffer({playlist: newPlaylist});
   }, [playlist, selectedLoc, buffer, props.noRepeatNum]);
 
   const insertSong = useCallback((relativeNum, song) => { // relative to currSong

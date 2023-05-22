@@ -41,13 +41,17 @@ const PlayerAudio = (props) => {
     sourceNode.connect(audioContext.destination);
   }, []);
 
+  useEffect(() => {
+    if (!songsLeftInput.current) return;
+    songsLeftInput.current.setCurrValue(() => songsLeft);
+  }, [songsLeft]);
+
   const autoplayNext = useCallback(async () => {
     if (!songsLeftActive) { playNext(); return; }
     if (songsLeft === 0) return;
-    songsLeftInput.current.setCurrValue(songsLeft - 1);
-    await setSongsLeft(songsLeft - 1);
+    setSongsLeft(x => x - 1);
     playNext();
-  }, [songsLeft, songsLeftActive]);
+  }, [playNext, songsLeft, setSongsLeft, songsLeftActive]);
 
   // compute and refresh metadata
   const artist = nowPlaying.getArtist(useUnicode);
@@ -55,8 +59,12 @@ const PlayerAudio = (props) => {
   const title = nowPlaying.getTitle(useUnicode) ?? displayName;
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({artist, title});
+    navigator.mediaSession.setActionHandler('play', () => audioRef.current.play());
+    navigator.mediaSession.setActionHandler('pause', () => audioRef.current.pause());
     navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
     navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+  } else {
+    setCurrentError(`warning: mediaSession not in ${navigator}`)
   }
 
   return (

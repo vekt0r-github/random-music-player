@@ -44,14 +44,17 @@ export class IntegerInput extends Component {
     };
   }
   
-  setCurrValue(value) {
-    const newState = { currValue: value };
-    const intValue = parseInt(value);
-    if (!isNaN(intValue)) {
-      this.props.onValidInput(intValue);
-      newState.currIntValue = intValue;
-    }
-    this.setState(newState);
+  setCurrValue(valueFunc) {
+    this.setState(({currIntValue: oldIntValue}) => {
+      let newIntValue = oldIntValue;
+      const value = valueFunc(oldIntValue);
+      const intValue = parseInt(value);
+      if (!isNaN(intValue)) {
+        this.props.onValidInput(intValue);
+        newIntValue = intValue;
+      }
+      return {currValue: value, currIntValue: newIntValue};
+    });
   }
 
   render() {
@@ -67,19 +70,19 @@ export class IntegerInput extends Component {
           className={styles.input}
           type='text'
           value={this.state.currValue}
-          onInput={(e) => this.setCurrValue(e.target.value)}
+          onInput={(e) => this.setCurrValue(() => e.target.value)}
           onBlur={(e) => { e.target.value = this.state.currIntValue }}
           {...props}
           />
         <button
           type="button"
           className={styles.plusMinusButton}
-          onClick={() => this.setCurrValue(Math.max(this.state.currIntValue - 1, 0))}
+          onClick={() => this.setCurrValue(x => Math.max(x - 1, 0))}
           >-1</button>
         <button
           type="button"
           className={styles.plusMinusButton}
-          onClick={() => this.setCurrValue(this.state.currIntValue + 1)}
+          onClick={() => this.setCurrValue(x => x + 1)}
           >+1</button>
       </>
     );
