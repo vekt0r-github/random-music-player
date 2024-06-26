@@ -27,7 +27,7 @@ router.get("/proxy", async (req, res) => {
 // filenames in the persistent dir might have to update if this is changed
 const toSafeFilename = (song) => {
   const fn = `${song.displayNameUnicode}.mp3`;
-  return fn.replace(/[\/\\:]/gi, '_');
+  return fn.replace(/[\/\\:*]/gi, '_');
 }
 
 // no args: get songs.json file
