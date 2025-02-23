@@ -5,7 +5,7 @@ import { WithLabel } from "../../utils/components.js";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import MP3Tag from "mp3tag.js";
-import OsuDBParser from "osu-db-parser";
+import { OsuDBParser } from "osu-db-parser";
 
 import { Table } from "./Table.js";
 
