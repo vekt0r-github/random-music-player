@@ -57,6 +57,16 @@ const getBPM = (timingPoints) => {
   return bpm;
 }
 
+/**
+ * helper to process unicode return values from OsuDBParser, after 2.0.0 update
+ * @param {string} input with possibly-garbled unicode text
+ * @returns same string, displayed correctly
+ */
+const processOsuDBString = (input) => {
+  if (!input) return input
+  return decodeURIComponent(escape(input));
+}
+
 export default class CollectionLoader extends Component {
   /**
    * props
@@ -162,8 +172,8 @@ export default class CollectionLoader extends Component {
           URL.revokeObjectURL(this.path);
           delete this.path;
         },
-        artistUnicode: beatmap.artist_name_unicode,
-        titleUnicode: beatmap.song_title_unicode,
+        artistUnicode: processOsuDBString(beatmap.artist_name_unicode),
+        titleUnicode: processOsuDBString(beatmap.song_title_unicode),
         artist: beatmap.artist_name,
         title: beatmap.song_title,
         bpm: getBPM(beatmap.timing_points),
@@ -171,9 +181,9 @@ export default class CollectionLoader extends Component {
         creator_name: beatmap.creator_name,
         difficulty: beatmap.difficulty,
         osu_file_name: beatmap.osu_file_name,
-        song_source: beatmap.song_source,
-        song_tags: beatmap.song_tags,
-        // ...beatmap // throw in everything else for searching purposes
+        song_source: processOsuDBString(beatmap.song_source),
+        song_tags: processOsuDBString(beatmap.song_tags),
+        // fields for searching, but careful with size
       }
       return addDisplayName(song);
     }));
