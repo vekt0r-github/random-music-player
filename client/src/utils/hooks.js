@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback, useRef, useEffect } from 'react';
+import React, { useReducer, useCallback, useRef, useEffect } from "react";
 
 /**
  * same as react's useReducer but the setter function returns a promise
@@ -17,7 +17,7 @@ export function useReducerPromise(reducer, initialArg, init) {
       if (Object.is(reducer(stateRef.current, action), stateRef.current)) {
         resolve(stateRef.current);
       }
-    })
+    });
   }, []); // keep object reference stable, exactly like `useState`
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function useReducerPromise(reducer, initialArg, init) {
 
 export function useStatePromise(initialValue) {
   return useReducerPromise((state, action) => {
-    if (typeof action === 'function') return action(state);
+    if (typeof action === "function") return action(state);
     return action;
   }, initialValue);
 }

@@ -9,7 +9,7 @@ import { OsuDBParser } from "osu-db-parser";
 
 import { Table } from "./Table.js";
 
-import { 
+import {
   addDisplayName,
   getMaybeUnicode,
   readFileBinary,
@@ -24,27 +24,28 @@ const Messages = Object.freeze({
   NOSELECT: "no directory selected",
   LOADING: "now loading!!!!",
   LOADED: "collections loaded!",
-  ERROR: "something went wrong (need an osu! installation root directory)"
+  ERROR: "something went wrong (need an osu! installation root directory)",
 });
 
-const makeLoadingMsg = (fn, progress) => `${Messages.LOADING} ('${fn}' ${(progress*100).toFixed(1)}%)`
+const makeLoadingMsg = (fn, progress) =>
+  `${Messages.LOADING} ('${fn}' ${(progress * 100).toFixed(1)}%)`;
 
 /**
  * uses osu-db-parser to parse osu!.db and collection.db
  * from selected folder
- * @param {Object} { osuFile, collectionFile } 
+ * @param {Object} { osuFile, collectionFile }
  * @returns {Object} { osuData, collectionData }, where
  * osuData = { beatmaps, folder_count, osuver, username }
  * collectionData = { collection, osuver }
  */
-const parseDB = ({osuFile, collectionFile}) => {
+const parseDB = ({ osuFile, collectionFile }) => {
   const osuBuffer = toBuffer(osuFile);
   const collectionBuffer = toBuffer(collectionFile);
   const parser = new OsuDBParser(osuBuffer, collectionBuffer);
   const osuData = parser.getOsuDBData();
   const collectionData = parser.getCollectionData();
-  return {osuData, collectionData};
-}
+  return { osuData, collectionData };
+};
 
 /**
  * gets the (rounded to 2 digits) bpm of a map; for now just using the first bpm like site does
@@ -53,9 +54,9 @@ const parseDB = ({osuFile, collectionFile}) => {
 const getBPM = (timingPoints) => {
   if (!timingPoints || !timingPoints[0]) return 0;
   const beatLengthMs = timingPoints[0][0];
-  const bpm = Math.round(100 * 60000 / beatLengthMs) / 100;
+  const bpm = Math.round((100 * 60000) / beatLengthMs) / 100;
   return bpm;
-}
+};
 
 /**
  * helper to process unicode return values from OsuDBParser, after 2.0.0 update
@@ -63,9 +64,9 @@ const getBPM = (timingPoints) => {
  * @returns same string, displayed correctly
  */
 const processOsuDBString = (input) => {
-  if (!input) return input
+  if (!input) return input;
   return decodeURIComponent(escape(input));
-}
+};
 
 export default class CollectionLoader extends Component {
   /**
@@ -87,7 +88,7 @@ export default class CollectionLoader extends Component {
 
   onOsuSelectClick = async () => {
     const osuDirectoryHandle = await window.showDirectoryPicker();
-    this.setState({ 
+    this.setState({
       status: Messages.LOADING,
       osuDirectoryHandle: osuDirectoryHandle,
       beatmaps: undefined,
@@ -98,19 +99,19 @@ export default class CollectionLoader extends Component {
       const fileHandle = await osuDirectoryHandle.getFileHandle(fn);
       const file = await fileHandle.getFile();
       return await readFileBinary(file, (progress) => {
-        this.setState({status: makeLoadingMsg(fn, progress)});
+        this.setState({ status: makeLoadingMsg(fn, progress) });
       });
-    }
+    };
     const osuFile = await getBinaryFile("osu!.db");
     const collectionFile = await getBinaryFile("collection.db");
-    
-    const {osuData, collectionData} = parseDB({osuFile, collectionFile});
+
+    const { osuData, collectionData } = parseDB({ osuFile, collectionFile });
     if (!osuData || !osuData.beatmaps || !collectionData || !collectionData.collection) {
-      this.setState({ 
+      this.setState({
         status: Messages.ERROR,
       });
       return;
-    } 
+    }
     const beatmaps = osuData.beatmaps;
     let collections = collectionData.collection;
     console.log(osuData);
@@ -124,7 +125,7 @@ export default class CollectionLoader extends Component {
     collections.unshift({
       name: "<all songs>",
       beatmapsCount: allSongs.size,
-      beatmapsMd5: [...allSongs.values()]
+      beatmapsMd5: [...allSongs.values()],
     });
     this.setState({
       status: Messages.LOADED,
@@ -135,18 +136,20 @@ export default class CollectionLoader extends Component {
 
   isLoaded = () => {
     return this.state.status === Messages.LOADED;
-  }
+  };
 
   /**
    * get all beatmaps in selected collection
    * @returns list of beatmap objects
    */
   selectedBeatmaps = () => {
-    if (this.state.selectedCollection === undefined) { return null; }
+    if (this.state.selectedCollection === undefined) {
+      return null;
+    }
     const collection = this.state.collections[this.state.selectedCollection];
     const hashes = new Set(collection.beatmapsMd5);
     return this.state.beatmaps.filter((beatmap) => hashes.has(beatmap.md5));
-  }
+  };
 
   /**
    * makes the pool at the current time, with selected collection
@@ -154,41 +157,45 @@ export default class CollectionLoader extends Component {
    */
   makePool = async () => {
     const beatmaps = this.selectedBeatmaps();
-    if (beatmaps === null) { return; }
-    const pool = await Promise.all(beatmaps.map(async (beatmap) => {
-      const makeURL = async () => {
-        const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
-        if (!handle) return null; // silently remove beatmap
-        const url = await handle.getFile().then(URL.createObjectURL);
-        return url;
-      }
-      const song = {
-        async addPath() {
-          console.log(this)
-          this.path = await makeURL();
-        },
-        removePath() {
-          console.log(this)
-          URL.revokeObjectURL(this.path);
-          delete this.path;
-        },
-        artistUnicode: processOsuDBString(beatmap.artist_name_unicode),
-        titleUnicode: processOsuDBString(beatmap.song_title_unicode),
-        artist: beatmap.artist_name,
-        title: beatmap.song_title,
-        bpm: getBPM(beatmap.timing_points),
-        length: beatmap.total_time / 1000,
-        creator_name: beatmap.creator_name,
-        difficulty: beatmap.difficulty,
-        osu_file_name: beatmap.osu_file_name,
-        song_source: processOsuDBString(beatmap.song_source),
-        song_tags: processOsuDBString(beatmap.song_tags),
-        // fields for searching, but careful with size
-      }
-      return addDisplayName(song);
-    }));
-    return pool.filter(song => song !== null);
-  }
+    if (beatmaps === null) {
+      return;
+    }
+    const pool = await Promise.all(
+      beatmaps.map(async (beatmap) => {
+        const makeURL = async () => {
+          const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
+          if (!handle) return null; // silently remove beatmap
+          const url = await handle.getFile().then(URL.createObjectURL);
+          return url;
+        };
+        const song = {
+          async addPath() {
+            console.log(this);
+            this.path = await makeURL();
+          },
+          removePath() {
+            console.log(this);
+            URL.revokeObjectURL(this.path);
+            delete this.path;
+          },
+          artistUnicode: processOsuDBString(beatmap.artist_name_unicode),
+          titleUnicode: processOsuDBString(beatmap.song_title_unicode),
+          artist: beatmap.artist_name,
+          title: beatmap.song_title,
+          bpm: getBPM(beatmap.timing_points),
+          length: beatmap.total_time / 1000,
+          creator_name: beatmap.creator_name,
+          difficulty: beatmap.difficulty,
+          osu_file_name: beatmap.osu_file_name,
+          song_source: processOsuDBString(beatmap.song_source),
+          song_tags: processOsuDBString(beatmap.song_tags),
+          // fields for searching, but careful with size
+        };
+        return addDisplayName(song);
+      })
+    );
+    return pool.filter((song) => song !== null);
+  };
 
   /**
    * download all beatmaps in selected collection as .zip
@@ -196,35 +203,40 @@ export default class CollectionLoader extends Component {
    */
   downloadMusic = async () => {
     const pool = await this.makePool();
-    if (pool === null) { return; }
+    if (pool === null) {
+      return;
+    }
     let zip = new JSZip();
-    await Promise.all(pool.map(async (song) => {
-      const maybeUni = (prop) => getMaybeUnicode(song, prop, this.props.useUnicode);
-      await song.addPath();
-      const blob = await fetch(song.path).then(r => r.blob());
-      song.removePath();
-      const fn = toSafeFilename(song, this.props.useUnicode);
-      console.log(blob.size)
-      let file = new File([blob], fn);
-      if (this.state.useMetadata) { // write metadata
-        const bin = await readFileBinary(file);
-        const mp3tag = new MP3Tag(toBuffer(bin), /* verbose= */ false);
-        mp3tag.read();
-        if (mp3tag.error !== '') {
-          console.log(mp3tag.error);
-        } else { 
-          mp3tag.tags.title = maybeUni('title');
-          mp3tag.tags.artist = maybeUni('artist');
-          const buf = mp3tag.save();
-          file = new File([buf], fn); // convert buffer back into file
+    await Promise.all(
+      pool.map(async (song) => {
+        const maybeUni = (prop) => getMaybeUnicode(song, prop, this.props.useUnicode);
+        await song.addPath();
+        const blob = await fetch(song.path).then((r) => r.blob());
+        song.removePath();
+        const fn = toSafeFilename(song, this.props.useUnicode);
+        console.log(blob.size);
+        let file = new File([blob], fn);
+        if (this.state.useMetadata) {
+          // write metadata
+          const bin = await readFileBinary(file);
+          const mp3tag = new MP3Tag(toBuffer(bin), /* verbose= */ false);
+          mp3tag.read();
+          if (mp3tag.error !== "") {
+            console.log(mp3tag.error);
+          } else {
+            mp3tag.tags.title = maybeUni("title");
+            mp3tag.tags.artist = maybeUni("artist");
+            const buf = mp3tag.save();
+            file = new File([buf], fn); // convert buffer back into file
+          }
         }
-      }
-      zip.file(fn, file);
-    }));
-    const zipContent = await zip.generateAsync({ type: "blob" })
+        zip.file(fn, file);
+      })
+    );
+    const zipContent = await zip.generateAsync({ type: "blob" });
     const collection = this.state.collections[this.state.selectedCollection];
     saveAs(zipContent, `${collection.name}.zip`);
-  }
+  };
 
   downloadMetadata = async () => {
     const pool = await this.makePool();
@@ -232,49 +244,56 @@ export default class CollectionLoader extends Component {
       delete song.path; // for creating .json
     });
     const poolFn = "songs.json";
-    const poolFile = new File([JSON.stringify(pool, null, 4)], poolFn, {type: "text/json"});
+    const poolFile = new File([JSON.stringify(pool, null, 4)], poolFn, { type: "text/json" });
     saveAs(poolFile, poolFn);
-  }
+  };
 
   render = () => {
     // make the collection table (keeping the outside scroll container in the same place)
     let collectionSelectTable;
     if (this.isLoaded()) {
-      const collectionColumns = [(collection, index) => ({
-        text: `${collection.name} (${collection.beatmapsCount})`,
-        onclick: () => {
-          this.setState({
-            selectedCollection: index,
-          });
-        },
-      })];
-      collectionSelectTable = <Table
-        rows={this.state.collections}
-        columns={collectionColumns}
-        selected={i => (i === this.state.selectedCollection)}
-        maxHeight={360}
-      />;
+      const collectionColumns = [
+        (collection, index) => ({
+          text: `${collection.name} (${collection.beatmapsCount})`,
+          onclick: () => {
+            this.setState({
+              selectedCollection: index,
+            });
+          },
+        }),
+      ];
+      collectionSelectTable = (
+        <Table
+          rows={this.state.collections}
+          columns={collectionColumns}
+          selected={(i) => i === this.state.selectedCollection}
+          maxHeight={360}
+        />
+      );
     }
 
     return (
       <div id="osu-container" className={styles.loader}>
         <div id="folder-select-container">
-          <button type="button" onClick={this.onOsuSelectClick}>select osu! folder</button>
+          <button type="button" onClick={this.onOsuSelectClick}>
+            select osu! folder
+          </button>
           <span> {this.state.status}</span>
         </div>
-        {this.isLoaded() ? 
+        {this.isLoaded() ? (
           <div id="collection-select-container">
             <label htmlFor="collection-select">collections:</label>
             <div id="collection-select">{collectionSelectTable}</div>
-            <WithLabel id='write-metadata-to-audio-files'>
+            <WithLabel id="write-metadata-to-audio-files">
               <input
-                type='checkbox'
+                type="checkbox"
                 defaultChecked={this.state.useMetadata}
                 onChange={(e) => {
                   this.setState({
                     useMetadata: e.target.checked,
                   });
-                }} />
+                }}
+              />
             </WithLabel>
             <div>
               <button
@@ -282,20 +301,25 @@ export default class CollectionLoader extends Component {
                 aria-describedby="dl-desc"
                 className={styles.downloadButton}
                 onClick={this.downloadMusic}
-                >download</button>
+              >
+                download
+              </button>
               <button
                 type="button"
                 aria-describedby="dl-desc"
                 className={styles.downloadButton}
                 onClick={this.downloadMetadata}
-                >dl data file</button>
+              >
+                dl data file
+              </button>
             </div>
             <div role="tooltip" id="dl-desc" className={styles.tooltip}>
-              download all songs in collection as .zip 
-              (filenames affected by "use unicode" checkbox)
-            </div> 
-          </div> : null}
+              download all songs in collection as .zip (filenames affected by "use unicode"
+              checkbox)
+            </div>
+          </div>
+        ) : null}
       </div>
     );
-  }
+  };
 }

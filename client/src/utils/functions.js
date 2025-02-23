@@ -1,8 +1,8 @@
 // randrange [min, max)
-const random = (min, max) => Math.floor(Math.random() * (max - min)) + min; 
+const random = (min, max) => Math.floor(Math.random() * (max - min)) + min;
 
 /**
- * @param {Array} x 
+ * @param {Array} x
  * @returns a random element from x
  */
 export const randomChoice = (x) => x[random(0, x.length)];
@@ -12,48 +12,51 @@ export const mod = (m, n) => ((m % n) + n) % n;
 
 /**
  * splits a string by the dot before file extension
- * @param {String} fn 
+ * @param {String} fn
  * @returns object {name, ext}
  */
 export const splitFilename = (fn) => {
-  let dot = fn.lastIndexOf('.');
+  let dot = fn.lastIndexOf(".");
   let ext = fn.substring(dot + 1);
   let name = fn.substring(0, dot);
-  return {name, ext};
+  return { name, ext };
 };
 
 export const addDisplayName = (song) => ({
   ...song,
   displayName: `${song.artist} - ${song.title}`,
-  displayNameUnicode: song.artistUnicode ? 
-    `${song.artistUnicode} - ${song.titleUnicode}` : undefined,
+  displayNameUnicode: song.artistUnicode
+    ? `${song.artistUnicode} - ${song.titleUnicode}`
+    : undefined,
 });
 
 // update later if other edge cases come up
 // escape sequences should be idempotent
 // must stay consistent with the backend algorithm in api.js
 export const toSafeFilename = (song, useUnicode) => {
-  const fn = `${(getMaybeUnicode(song, 'displayName', useUnicode))}.mp3`;
-  return fn.replace(/[\/\\:*]/gi, '_');
-}
+  const fn = `${getMaybeUnicode(song, "displayName", useUnicode)}.mp3`;
+  return fn.replace(/[\/\\:*]/gi, "_");
+};
 
 /**
  * gets property from song, using the unicode version if
  * desired and available
- * @param {Song} song 
- * @param {String} property 
- * @param {Boolean} useUnicode 
+ * @param {Song} song
+ * @param {String} property
+ * @param {Boolean} useUnicode
  * @returns value of the property
  */
 export const getMaybeUnicode = (song, property, useUnicode) => {
   let value;
-  if (useUnicode) { value = song[`${property}Unicode`]; }
+  if (useUnicode) {
+    value = song[`${property}Unicode`];
+  }
   return value ?? song[property];
 };
 
 /**
  * async function to read file as binary
- * @param {File | Blob} file 
+ * @param {File | Blob} file
  * @param {(number) => void} onProgress
  * @returns promise containing binary output
  */
@@ -83,7 +86,7 @@ export const readFileBinary = (file, onProgress) => {
         chunkReaderBlock(offset, chunkSize, file); // next chunk
       };
       r.readAsBinaryString(blob);
-    }
+    };
 
     // now let's start the read with the first block
     chunkReaderBlock(offset, chunkSize, file);
@@ -91,7 +94,7 @@ export const readFileBinary = (file, onProgress) => {
 };
 
 export const toBuffer = (fileStr) => {
-  const encoding = 'binary';
+  const encoding = "binary";
   // const file = new File([fileStr], "");
   return Buffer.from(fileStr, encoding);
 };
@@ -123,13 +126,13 @@ export const scrollIfNeeded = (element, container) => {
       container.scrollTop = offsetBottom - container.offsetHeight;
     }
   }
-}
+};
 
 export const isAudioExtension = (ext) => ["mp3", "wav", "flac"].includes(ext);
 
 /**
  * helper for generating queries for objectMatchesQueries
- * 
+ *
  * @param {string} queryString full string to parse
  * @returns list of objects [{ field?, op?, value }]
  */
@@ -139,7 +142,7 @@ export const parseQueryString = (queryString) => {
   const oper = /[=<>]/;
   let lock = null;
   let currQuery = "";
-  for (const c of (queryString+" ").split('')) {
+  for (const c of (queryString + " ").split("")) {
     if (lock === null) {
       if (c.match(/\s/)) {
         if (currQuery.length) querySegments.push(currQuery);
@@ -158,9 +161,11 @@ export const parseQueryString = (queryString) => {
     }
   }
   if (currQuery.length) return undefined; // bad query
-  const queries = querySegments.map(query => {
+  const queries = querySegments.map((query) => {
     const operMatch = query.match(oper);
-    let field, op, valueString = query;
+    let field,
+      op,
+      valueString = query;
     if (operMatch) {
       const { 0: opStr, index } = operMatch;
       const maybeField = query.slice(0, index);
@@ -182,15 +187,15 @@ export const parseQueryString = (queryString) => {
   });
   if (queries.includes(undefined)) return undefined;
   return queries;
-}
+};
 
 export class SearchField {
   ops = Object.freeze({
-    "in": (a, b) => a.includes(b),
+    in: (a, b) => a.includes(b),
     "=": (a, b) => a === b,
     ">": (a, b) => a > b,
     "<": (a, b) => a < b,
-  })
+  });
   constructor(options = {}) {
     this.keywordOnly = options.kwarg ?? false;
     this.numberField = options.number ?? false;
@@ -199,16 +204,16 @@ export class SearchField {
       : (value) => `${value}`.toLowerCase();
   }
   isMatch = (value, queryValue, op = "=") => {
-    if (typeof value === 'function') return false;
+    if (typeof value === "function") return false;
     // for text searches "=" means contains instead
-    if (!this.numberField && op === "=") op = "in"
+    if (!this.numberField && op === "=") op = "in";
     return this.ops[op](this.process(value), this.process(queryValue));
-  }
+  };
 }
 
 /**
  * checks if each query can be found in the object's values
- * 
+ *
  * @param {Object} obj the object
  * @param {Query[]} queries list of objects [{ field?, op?, value }]
  * @param options object { fields?, ignoreFields? }
@@ -217,19 +222,20 @@ export class SearchField {
  * - ignoreFields: list of fields to ignore
  * @returns bool
  */
-export const objectMatchesQueries = (obj, queries, options={}) => {
+export const objectMatchesQueries = (obj, queries, options = {}) => {
   const { fields, ignoreRest, ignoreFields } = options;
-  const getSearchField = (field) => { // determines how to handle a field
+  const getSearchField = (field) => {
+    // determines how to handle a field
     if (fields && field in fields) return fields[field];
     if (ignoreRest || (ignoreFields && field in ignoreFields)) return undefined;
     return new SearchField(); // default options
-  }
+  };
   // succeeds if each portion matches
   for (const { field, op, value } of queries) {
     if (field !== undefined) {
       // check specific field matches value
       const searchField = getSearchField(field);
-      console.log(obj[field], value, op)
+      console.log(obj[field], value, op);
       if (!searchField || !searchField.isMatch(obj[field], value, op)) return false;
     } else {
       // search all keys for value
@@ -246,18 +252,18 @@ export const objectMatchesQueries = (obj, queries, options={}) => {
     }
   }
   return true; // all portions matched
-}
+};
 
 /**
  * converts all urls in pool to be reverse proxied through backend
- * @param {Song[]} pool 
+ * @param {Song[]} pool
  * @returns pool with each song having a reverse proxied path
  */
 export const attachReverseProxy = (pool) => {
-  console.log(pool)
+  console.log(pool);
   const host = `${window.location.protocol}//${window.location.host}`;
   return pool.map((song) => ({
     ...song,
     path: `${host}/api/proxy?src=${encodeURIComponent(song.path)}`,
   }));
-}
+};

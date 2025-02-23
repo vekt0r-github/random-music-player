@@ -66,23 +66,26 @@ export default class Home extends Component {
       pool = attachReverseProxy(pool);
     } else if (mode === Modes.FOLDER) {
       pool = await this.folderLoader.current.makePool();
-      activeURLs = pool.map(song => song.url);
+      activeURLs = pool.map((song) => song.url);
     } else if (mode === Modes.OSU) {
       pool = await this.collectionLoader.current.makePool();
-      activeURLs = pool.map(song => song.url);
+      activeURLs = pool.map((song) => song.url);
     }
     const noRepeatNum = Math.min(this.state.noRepeatNum, pool.length - 1);
     this.noRepeatNumInput.current.setCurrValue(() => noRepeatNum);
-    this.setState({
-      activeURLs: activeURLs,
-      pool: pool,
-      noRepeatNum: noRepeatNum,
-    }, () => {
-      // actually stupid; waits 100ms to skip a render cycle
-      // because PlayerAudio's <audio> doesn't exist until after the render
-      // and to autoplay on iOS this must be tied to the click action
-      setTimeout(() => document.getElementById("audio").play(), 100);
-    });
+    this.setState(
+      {
+        activeURLs: activeURLs,
+        pool: pool,
+        noRepeatNum: noRepeatNum,
+      },
+      () => {
+        // actually stupid; waits 100ms to skip a render cycle
+        // because PlayerAudio's <audio> doesn't exist until after the render
+        // and to autoplay on iOS this must be tied to the click action
+        setTimeout(() => document.getElementById("audio").play(), 100);
+      }
+    );
   };
 
   render = () => {
@@ -96,7 +99,8 @@ export default class Home extends Component {
               this.setState({
                 [prop]: value,
               });
-            }} />
+            }}
+          />
         </WithLabel>
       );
     };
@@ -112,44 +116,35 @@ export default class Home extends Component {
             <option value={Modes.OSU}>osu! collection</option>
           </select>
         </div>
-        {this.state.mode === Modes.SUL ? 
-          <SulLoader
-            ref={this.sulLoader}
-            useUnicode={this.state.useUnicode}
-            /> : null}
-        {this.state.mode === Modes.FOLDER ? 
-          <FolderLoader
-            ref={this.folderLoader}
-            /> : null}
-        {this.state.mode === Modes.OSU ?
-          <CollectionLoader
-            ref={this.collectionLoader}
-            useUnicode={this.state.useUnicode}
-            /> : null}
+        {this.state.mode === Modes.SUL ? (
+          <SulLoader ref={this.sulLoader} useUnicode={this.state.useUnicode} />
+        ) : null}
+        {this.state.mode === Modes.FOLDER ? <FolderLoader ref={this.folderLoader} /> : null}
+        {this.state.mode === Modes.OSU ? (
+          <CollectionLoader ref={this.collectionLoader} useUnicode={this.state.useUnicode} />
+        ) : null}
         <div className={styles.content}>
-          <button
-            type="button" 
-            className={styles.startButton}
-            onClick={this.start}
-            >!mp start</button>
+          <button type="button" className={styles.startButton} onClick={this.start}>
+            !mp start
+          </button>
         </div>
         <div id="settings" className={styles.content}>
-          {makeNumberSettingField('noRepeatNum', this.noRepeatNumInput)}
-          {makeNumberSettingField('rowsBefore')}
-          {makeNumberSettingField('rowsAfter')}
-          <WithLabel id='use-unicode'>
+          {makeNumberSettingField("noRepeatNum", this.noRepeatNumInput)}
+          {makeNumberSettingField("rowsBefore")}
+          {makeNumberSettingField("rowsAfter")}
+          <WithLabel id="use-unicode">
             <input
-              type='checkbox'
+              type="checkbox"
               checked={this.state.useUnicode}
               onChange={(e) => {
                 this.setState({
                   useUnicode: e.target.checked,
                 });
               }}
-              />
+            />
           </WithLabel>
         </div>
-        {this.state.pool.length ? 
+        {this.state.pool.length ? (
           <Player
             className={styles.content}
             pool={this.state.pool}
@@ -157,8 +152,9 @@ export default class Home extends Component {
             rowsBefore={this.state.rowsBefore}
             rowsAfter={this.state.rowsAfter}
             useUnicode={this.state.useUnicode}
-          /> : null}
+          />
+        ) : null}
       </div>
-    )
-  }
+    );
+  };
 }
