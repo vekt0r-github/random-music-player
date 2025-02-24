@@ -10,7 +10,7 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
 const request = require("request");
-const { parseDB } = require("./osudb");
+const { fetchOsuData, fetchCollectionData } = require("./osudb");
 var path = require("path");
 var fs = require("fs");
 require("dotenv").config();
@@ -101,38 +101,15 @@ router.post("/songs/sul", async (req, res) => {
   }
 });
 
-const makeOsuFileHandler =
-  (filename, contentType = "application/octet-stream") =>
-  async (req, res) => {
-    const collectionsPath = path.join(process.env.SERVER_OSU_DIR, filename);
-    fs.readFile(collectionsPath, (error, data) => {
-      if (error) {
-        res.status(500).send({ msg: error.message });
-      } else {
-        res.setHeader("content-type", contentType);
-        res.status(200).send(data);
-      }
-    });
-  };
-
 router.get("/osu/metadata", async (req, res) => {
-  const osuPath = path.join(process.env.SERVER_OSU_DIR, "osu!.db");
-  const collectionsPath = path.join(process.env.SERVER_OSU_DIR, "collection.db");
-  fs.readFile(osuPath, (error, osuBuffer) => {
-    if (error) {
-      res.status(500).send({ msg: error.message });
-    } else {
-      fs.readFile(collectionsPath, (error, collectionBuffer) => {
-        if (error) {
-          res.status(500).send({ msg: error.message });
-        } else {
-          const { osuData, collectionData } = parseDB(osuBuffer, collectionBuffer);
-          res.setHeader("content-type", "application/json");
-          res.status(200).send({ osuData, collectionData });
-        }
-      });
-    }
-  });
+  try {
+    const osuData = await fetchOsuData();
+    const collectionData = await fetchCollectionData();
+    res.setHeader("content-type", "audio/mpeg");
+    res.status(200).send({ osuData, collectionData });
+  } catch (error) {
+    res.status(500).send({ msg: error.message });
+  }
 });
 
 router.get("/osu/songs", async (req, res) => {
