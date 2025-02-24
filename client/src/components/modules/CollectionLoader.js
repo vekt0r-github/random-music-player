@@ -146,7 +146,8 @@ export default class CollectionLoader extends Component {
     };
     const osuFile = await getBinaryFile("osu!.db");
     const collectionFile = await getBinaryFile("collection.db");
-    this.setCollectionsFromOsuFiles(osuFile, collectionFile);
+    const { osuData, collectionData } = parseDB({ osuFile, collectionFile });
+    this.setCollectionsFromOsuData(osuData, collectionData);
   };
 
   onOsuServerFetchClick = async () => {
@@ -156,17 +157,14 @@ export default class CollectionLoader extends Component {
       collections: undefined,
       selectedCollection: undefined,
     });
-    const getBinaryFile = async (endpoint) => {
-      const file = await get(endpoint, {}, "blob");
-      return await this.readFileBinaryWithProgress(file, endpoint);
-    };
-    const osuFile = await getBinaryFile("/api/osu/db");
-    const collectionFile = await getBinaryFile("/api/osu/collections");
-    this.setCollectionsFromOsuFiles(osuFile, collectionFile);
+    const { osuData, collectionData } = await get("/api/osu/metadata");
+    this.setCollectionsFromOsuData(osuData, collectionData);
   };
 
-  setCollectionsFromOsuFiles = (osuFile, collectionFile) => {
-    const { osuData, collectionData } = parseDB({ osuFile, collectionFile });
+  /**
+   * args are in the format returned by osu-db-parser
+   */
+  setCollectionsFromOsuData = (osuData, collectionData) => {
     if (!osuData || !osuData.beatmaps || !collectionData || !collectionData.collection) {
       this.setState({
         status: Status.ERROR,

@@ -85,7 +85,7 @@ export const readFileBinary = (file, onProgress) => {
         }
         chunkReaderBlock(offset, chunkSize, file); // next chunk
       };
-      r.readAsBinaryString(blob);
+      r.readAsArrayBuffer(blob);
     };
 
     // now let's start the read with the first block

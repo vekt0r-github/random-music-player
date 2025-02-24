@@ -30,7 +30,6 @@ modes currently supported:
 kete
 
 - preloading next song
-- better server-side handling for osu
 - drag + move songs around
 - pool list sorting options
 - reimplement scrollIfNeeded for pool box

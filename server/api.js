@@ -10,6 +10,7 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
 const request = require("request");
+const { parseDB } = require("./osudb");
 var path = require("path");
 var fs = require("fs");
 require("dotenv").config();
@@ -114,16 +115,39 @@ const makeOsuFileHandler =
     });
   };
 
-// todo: server-side should handle osudb parsing when more time
-
-router.get("/osu/collections", makeOsuFileHandler("collection.db"));
-router.get("/osu/db", makeOsuFileHandler("osu!.db"));
+router.get("/osu/metadata", async (req, res) => {
+  const osuPath = path.join(process.env.SERVER_OSU_DIR, "osu!.db");
+  const collectionsPath = path.join(process.env.SERVER_OSU_DIR, "collection.db");
+  fs.readFile(osuPath, (error, osuBuffer) => {
+    if (error) {
+      res.status(500).send({ msg: error.message });
+    } else {
+      fs.readFile(collectionsPath, (error, collectionBuffer) => {
+        if (error) {
+          res.status(500).send({ msg: error.message });
+        } else {
+          const { osuData, collectionData } = parseDB(osuBuffer, collectionBuffer);
+          res.setHeader("content-type", "application/json");
+          res.status(200).send({ osuData, collectionData });
+        }
+      });
+    }
+  });
+});
 
 router.get("/osu/songs", async (req, res) => {
   if (!req.query.path) {
     res.status(400).send({ msg: "please provide a filepath" });
   } else {
-    makeOsuFileHandler(req.query.path, "audio/mpeg")(req, res);
+    const collectionsPath = path.join(process.env.SERVER_OSU_DIR, req.query.path);
+    fs.readFile(collectionsPath, (error, data) => {
+      if (error) {
+        res.status(500).send({ msg: error.message });
+      } else {
+        res.setHeader("content-type", "audio/mpeg");
+        res.status(200).send(data);
+      }
+    });
   }
 });
 
