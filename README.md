@@ -3,6 +3,7 @@
 site which currently plays audio (.mp3/.wav/.flac) files at random
 
 modes currently supported:
+
 - s-ul songs: directly link a `songs.json` data file, or provide your login (if you trust that this doesn't steal your data) and pool is created from all audio files uploaded to the given s-ul account
   - to get this data file, this is what i do:
     - in osu! collection mode, export my collection and also click dl data file
@@ -14,7 +15,6 @@ modes currently supported:
 - osu! collection: select your osu! folder, then pick one of your collections from the list
   - note: all song folders with a tilde character ('~') seem to be inaccessible with the File System Access API, so these songs are silently removed :(
   - note: there's something weird with ID3 tags when using write metadata option in downloading a collection
-- default songs (deprecated): collection of songs i uploaded to a third-party site; i will delete this eventually, but keeping as a backup in case s-ul option stops working
 
 ## to run locally (in development mode)
 
@@ -26,7 +26,9 @@ modes currently supported:
 - site should be served on localhost:5000
 
 ## todo
+
 kete
+
 - preloading next song
 - better server-side handling for osu
 - drag + move songs around

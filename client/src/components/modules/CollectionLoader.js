@@ -320,6 +320,15 @@ export default class CollectionLoader extends Component {
     saveAs(poolFile, poolFn);
   };
 
+  downloadFileList = async () => {
+    // these paths will be relative to the osu! root directory
+    const beatmaps = this.selectedBeatmaps();
+    const fileList = ["osu!.db", "collection.db", ...beatmaps.map((bm) => getAudioPath(bm))];
+    const fileListFn = "filelist.txt";
+    const fileListFile = new File([fileList.join("\n")], fileListFn, { type: "text/plain" });
+    saveAs(fileListFile, fileListFn);
+  };
+
   render = () => {
     // make the collection table (keeping the outside scroll container in the same place)
     let collectionSelectTable;
@@ -398,6 +407,20 @@ export default class CollectionLoader extends Component {
                   >
                     dl data file
                   </button>
+                  <div role="tooltip" id="dl-rsync-desc" className={styles.tooltip}>
+                    this is the songs.json file that s-ul and default modes rely on
+                  </div>
+                  <button
+                    type="button"
+                    aria-describedby="dl-rsync-desc"
+                    className={styles.downloadButton}
+                    onClick={this.downloadFileList}
+                  >
+                    dl filelist.txt
+                  </button>
+                  <div role="tooltip" id="dl-rsync-desc" className={styles.tooltip}>
+                    this is for rsync to upload for the server-side collection mode
+                  </div>
                 </div>
               </>
             ) : null}
