@@ -387,18 +387,17 @@ export default class CollectionLoader extends Component {
                   >
                     download
                   </button>
+                  <div role="tooltip" id="dl-desc" className={styles.tooltip}>
+                    download all songs in collection as .zip (filenames affected by "use unicode"
+                    checkbox)
+                  </div>
                   <button
                     type="button"
-                    aria-describedby="dl-desc"
                     className={styles.downloadButton}
                     onClick={this.downloadMetadata}
                   >
                     dl data file
                   </button>
-                </div>
-                <div role="tooltip" id="dl-desc" className={styles.tooltip}>
-                  download all songs in collection as .zip (filenames affected by "use unicode"
-                  checkbox)
                 </div>
               </>
             ) : null}
