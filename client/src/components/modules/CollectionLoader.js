@@ -15,20 +15,46 @@ import {
   readFileBinary,
   toBuffer,
   getAudioHandle,
+  getAudioPath,
   toSafeFilename,
 } from "../../utils/functions.js";
 
 import styles from "./CollectionLoader.css";
+import { get } from "../../utils/requests.js";
 
-const Messages = Object.freeze({
-  NOSELECT: "no directory selected",
-  LOADING: "now loading!!!!",
-  LOADED: "collections loaded!",
-  ERROR: "something went wrong (need an osu! installation root directory)",
+const Status = Object.freeze({
+  NO_SELECT: "no_select",
+  LOADING: "loading",
+  LOADED: "loaded",
+  ERROR: "error",
 });
 
-const makeLoadingMsg = (fn, progress) =>
-  `${Messages.LOADING} ('${fn}' ${(progress * 100).toFixed(1)}%)`;
+/**
+ * render helper for component's current status
+ * @param {Status} status
+ * @param {{filename: string, progress: float}} loadingStatus
+ * @param {bool} loadFromServer
+ * @returns string to display
+ */
+const makeStatusMsg = (status, loadingStatus = undefined, loadFromServer = false) => {
+  switch (status) {
+    case Status.NO_SELECT:
+      return loadFromServer ? "not yet fetched" : "no directory selected";
+    case Status.LOADING:
+      const loadingMsg = "now loading!!!!";
+      if (loadingStatus) {
+        const { filename, progress } = loadingStatus;
+        return `${loadingMsg} ('${filename}' ${(progress * 100).toFixed(1)}%)`;
+      }
+      return loadingMsg;
+    case Status.LOADED:
+      return "collections loaded!";
+    case Status.ERROR:
+      return "something went wrong" + loadFromServer
+        ? ""
+        : " (need an osu! installation root directory)";
+  }
+};
 
 /**
  * uses osu-db-parser to parse osu!.db and collection.db
@@ -68,16 +94,29 @@ const processOsuDBString = (input) => {
   return decodeURIComponent(escape(input));
 };
 
+const makeURLForClient = async (osuDirectoryHandle, beatmap) => {
+  const handle = await getAudioHandle(osuDirectoryHandle, beatmap);
+  if (!handle) return null; // silently remove beatmap
+  const url = await handle.getFile().then(URL.createObjectURL);
+  return url;
+};
+
+const makeURLForServer = (beatmap) => {
+  return `/api/osu/songs?path=${getAudioPath(beatmap)}`;
+};
+
 export default class CollectionLoader extends Component {
   /**
    * props
    * onCollectionsLoaded: (beatmaps, collections) => {}
    * useUnicode: bool
+   * loadFromServer: bool // uses osu instance uploaded to server
    */
   constructor(props) {
     super(props);
     this.state = {
-      status: Messages.NOSELECT,
+      status: Status.NO_SELECT,
+      loadingStatus: undefined,
       osuDirectoryHandle: undefined,
       beatmaps: undefined,
       collections: undefined,
@@ -86,10 +125,15 @@ export default class CollectionLoader extends Component {
     };
   }
 
+  readFileBinaryWithProgress = (file, filename) =>
+    readFileBinary(file, (progress) => {
+      this.setState({ loadingStatus: { filename, progress } });
+    });
+
   onOsuSelectClick = async () => {
     const osuDirectoryHandle = await window.showDirectoryPicker();
     this.setState({
-      status: Messages.LOADING,
+      status: Status.LOADING,
       osuDirectoryHandle: osuDirectoryHandle,
       beatmaps: undefined,
       collections: undefined,
@@ -98,17 +142,34 @@ export default class CollectionLoader extends Component {
     const getBinaryFile = async (fn) => {
       const fileHandle = await osuDirectoryHandle.getFileHandle(fn);
       const file = await fileHandle.getFile();
-      return await readFileBinary(file, (progress) => {
-        this.setState({ status: makeLoadingMsg(fn, progress) });
-      });
+      return await this.readFileBinaryWithProgress(file, fn);
     };
     const osuFile = await getBinaryFile("osu!.db");
     const collectionFile = await getBinaryFile("collection.db");
+    this.setCollectionsFromOsuFiles(osuFile, collectionFile);
+  };
 
+  onOsuServerFetchClick = async () => {
+    this.setState({
+      status: Status.LOADING,
+      beatmaps: undefined,
+      collections: undefined,
+      selectedCollection: undefined,
+    });
+    const getBinaryFile = async (endpoint) => {
+      const file = await get(endpoint, {}, "blob");
+      return await this.readFileBinaryWithProgress(file, endpoint);
+    };
+    const osuFile = await getBinaryFile("/api/osu/db");
+    const collectionFile = await getBinaryFile("/api/osu/collections");
+    this.setCollectionsFromOsuFiles(osuFile, collectionFile);
+  };
+
+  setCollectionsFromOsuFiles = (osuFile, collectionFile) => {
     const { osuData, collectionData } = parseDB({ osuFile, collectionFile });
     if (!osuData || !osuData.beatmaps || !collectionData || !collectionData.collection) {
       this.setState({
-        status: Messages.ERROR,
+        status: Status.ERROR,
       });
       return;
     }
@@ -116,6 +177,15 @@ export default class CollectionLoader extends Component {
     let collections = collectionData.collection;
     console.log(osuData);
     console.log(collectionData);
+
+    // preprocess all strings, since unicode text may be garbled
+    for (const bm of beatmaps) {
+      for (let key in bm) {
+        if (bm.hasOwnProperty(key) && typeof bm[key] === "string") {
+          bm[key] = processOsuDBString(bm[key]);
+        }
+      }
+    }
 
     const allSongs = new Map();
     for (const bm of beatmaps) {
@@ -128,14 +198,14 @@ export default class CollectionLoader extends Component {
       beatmapsMd5: [...allSongs.values()],
     });
     this.setState({
-      status: Messages.LOADED,
+      status: Status.LOADED,
       beatmaps: beatmaps,
       collections: collections,
     });
   };
 
   isLoaded = () => {
-    return this.state.status === Messages.LOADED;
+    return this.state.status === Status.LOADED;
   };
 
   /**
@@ -162,24 +232,10 @@ export default class CollectionLoader extends Component {
     }
     const pool = await Promise.all(
       beatmaps.map(async (beatmap) => {
-        const makeURL = async () => {
-          const handle = await getAudioHandle(this.state.osuDirectoryHandle, beatmap);
-          if (!handle) return null; // silently remove beatmap
-          const url = await handle.getFile().then(URL.createObjectURL);
-          return url;
-        };
         const song = {
-          async addPath() {
-            console.log(this);
-            this.path = await makeURL();
-          },
-          removePath() {
-            console.log(this);
-            URL.revokeObjectURL(this.path);
-            delete this.path;
-          },
-          artistUnicode: processOsuDBString(beatmap.artist_name_unicode),
-          titleUnicode: processOsuDBString(beatmap.song_title_unicode),
+          // fields for searching, but careful with size
+          artistUnicode: beatmap.artist_name_unicode,
+          titleUnicode: beatmap.song_title_unicode,
           artist: beatmap.artist_name,
           title: beatmap.song_title,
           bpm: getBPM(beatmap.timing_points),
@@ -187,10 +243,26 @@ export default class CollectionLoader extends Component {
           creator_name: beatmap.creator_name,
           difficulty: beatmap.difficulty,
           osu_file_name: beatmap.osu_file_name,
-          song_source: processOsuDBString(beatmap.song_source),
-          song_tags: processOsuDBString(beatmap.song_tags),
-          // fields for searching, but careful with size
+          song_source: beatmap.song_source,
+          song_tags: beatmap.song_tags,
         };
+
+        // server uses api for urls; client has to generate them
+        if (this.props.loadFromServer) {
+          song.path = makeURLForServer(beatmap);
+        } else {
+          const osuDirectoryHandle = this.state.osuDirectoryHandle;
+          song.addPath = async function () {
+            console.log(this);
+            this.path = await makeURLForClient(osuDirectoryHandle, beatmap);
+          };
+          song.removePath = function () {
+            console.log(this);
+            URL.revokeObjectURL(this.path);
+            delete this.path;
+          };
+        }
+
         return addDisplayName(song);
       })
     );
@@ -275,48 +347,61 @@ export default class CollectionLoader extends Component {
     return (
       <div id="osu-container" className={styles.loader}>
         <div id="folder-select-container">
-          <button type="button" onClick={this.onOsuSelectClick}>
-            select osu! folder
-          </button>
-          <span> {this.state.status}</span>
+          {this.props.loadFromServer ? (
+            <button type="button" onClick={this.onOsuServerFetchClick}>
+              fetch collections
+            </button>
+          ) : (
+            <button type="button" onClick={this.onOsuSelectClick}>
+              select osu! folder
+            </button>
+          )}
+          <span>
+            {" "}
+            {makeStatusMsg(this.state.status, this.state.loadingStatus, this.props.loadFromServer)}
+          </span>
         </div>
         {this.isLoaded() ? (
-          <div id="collection-select-container">
+          <div id="collection-select-container" className={styles.collectionSelectContainer}>
             <label htmlFor="collection-select">collections:</label>
             <div id="collection-select">{collectionSelectTable}</div>
-            <WithLabel id="write-metadata-to-audio-files">
-              <input
-                type="checkbox"
-                defaultChecked={this.state.useMetadata}
-                onChange={(e) => {
-                  this.setState({
-                    useMetadata: e.target.checked,
-                  });
-                }}
-              />
-            </WithLabel>
-            <div>
-              <button
-                type="button"
-                aria-describedby="dl-desc"
-                className={styles.downloadButton}
-                onClick={this.downloadMusic}
-              >
-                download
-              </button>
-              <button
-                type="button"
-                aria-describedby="dl-desc"
-                className={styles.downloadButton}
-                onClick={this.downloadMetadata}
-              >
-                dl data file
-              </button>
-            </div>
-            <div role="tooltip" id="dl-desc" className={styles.tooltip}>
-              download all songs in collection as .zip (filenames affected by "use unicode"
-              checkbox)
-            </div>
+            {!this.props.loadFromServer ? (
+              <>
+                <WithLabel id="write-metadata-to-audio-files">
+                  <input
+                    type="checkbox"
+                    defaultChecked={this.state.useMetadata}
+                    onChange={(e) => {
+                      this.setState({
+                        useMetadata: e.target.checked,
+                      });
+                    }}
+                  />
+                </WithLabel>
+                <div>
+                  <button
+                    type="button"
+                    aria-describedby="dl-desc"
+                    className={styles.downloadButton}
+                    onClick={this.downloadMusic}
+                  >
+                    download
+                  </button>
+                  <button
+                    type="button"
+                    aria-describedby="dl-desc"
+                    className={styles.downloadButton}
+                    onClick={this.downloadMetadata}
+                  >
+                    dl data file
+                  </button>
+                </div>
+                <div role="tooltip" id="dl-desc" className={styles.tooltip}>
+                  download all songs in collection as .zip (filenames affected by "use unicode"
+                  checkbox)
+                </div>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>

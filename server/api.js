@@ -100,6 +100,33 @@ router.post("/songs/sul", async (req, res) => {
   }
 });
 
+const makeOsuFileHandler =
+  (filename, contentType = "application/octet-stream") =>
+  async (req, res) => {
+    const collectionsPath = path.join(process.env.SERVER_OSU_DIR, filename);
+    fs.readFile(collectionsPath, (error, data) => {
+      if (error) {
+        res.status(500).send({ msg: error.message });
+      } else {
+        res.setHeader("content-type", contentType);
+        res.status(200).send(data);
+      }
+    });
+  };
+
+// todo: server-side should handle osudb parsing when more time
+
+router.get("/osu/collections", makeOsuFileHandler("collection.db"));
+router.get("/osu/db", makeOsuFileHandler("osu!.db"));
+
+router.get("/osu/songs", async (req, res) => {
+  if (!req.query.path) {
+    res.status(400).send({ msg: "please provide a filepath" });
+  } else {
+    makeOsuFileHandler(req.query.path, "audio/mpeg")(req, res);
+  }
+});
+
 // anything else falls to this "not found" case
 router.all("*", (req, res) => {
   console.log(`API route not found: ${req.method} ${req.url}`);

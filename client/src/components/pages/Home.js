@@ -17,6 +17,7 @@ const Modes = Object.freeze({
   SUL: "s-ul",
   FOLDER: "folder",
   OSU: "osu",
+  SERVER_OSU: "server_osu",
 });
 
 /**
@@ -27,7 +28,7 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      mode: Modes.DEFAULT,
+      mode: Modes.SERVER_OSU,
       activeURLs: [], // folder select
       osuData: undefined, // osu
       // ({osuDirectoryHandle, beatmaps, collections, selectedCollection})
@@ -67,7 +68,7 @@ export default class Home extends Component {
     } else if (mode === Modes.FOLDER) {
       pool = await this.folderLoader.current.makePool();
       activeURLs = pool.map((song) => song.url);
-    } else if (mode === Modes.OSU) {
+    } else if ([Modes.OSU, Modes.SERVER_OSU].includes(mode)) {
       pool = await this.collectionLoader.current.makePool();
       activeURLs = pool.map((song) => song.url);
     }
@@ -110,6 +111,7 @@ export default class Home extends Component {
         <h1>random music player</h1>
         <div className={styles.content}>
           <select id={styles.modes} value={this.state.mode} onChange={this.onModeChange}>
+            <option value={Modes.SERVER_OSU}>default collections</option>
             <option value={Modes.DEFAULT}>default songs</option>
             <option value={Modes.SUL}>s-ul songs</option>
             <option value={Modes.FOLDER}>folder select</option>
@@ -120,8 +122,13 @@ export default class Home extends Component {
           <SulLoader ref={this.sulLoader} useUnicode={this.state.useUnicode} />
         ) : null}
         {this.state.mode === Modes.FOLDER ? <FolderLoader ref={this.folderLoader} /> : null}
-        {this.state.mode === Modes.OSU ? (
-          <CollectionLoader ref={this.collectionLoader} useUnicode={this.state.useUnicode} />
+        {[Modes.OSU, Modes.SERVER_OSU].includes(this.state.mode) ? (
+          <CollectionLoader
+            ref={this.collectionLoader}
+            useUnicode={this.state.useUnicode}
+            loadFromServer={this.state.mode === Modes.SERVER_OSU}
+            key={this.state.mode}
+          />
         ) : null}
         <div className={styles.content}>
           <button type="button" className={styles.startButton} onClick={this.start}>

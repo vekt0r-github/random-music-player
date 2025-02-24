@@ -27,14 +27,13 @@ modes currently supported:
 
 ## todo
 kete
-- move songs around
+- preloading next song
+- better server-side handling for osu
+- drag + move songs around
 - pool list sorting options
 - reimplement scrollIfNeeded for pool box
 - performance issues:
   - pool search component keying
   - pool loading dynamic url assignment for FolderSelect
-  - dynamic url assignment should preload playlist (if slow)
-  - Possible EventEmitter memory leak detected.
-  - still need to fix memory being significantly higher than before
+  - dynamic url assignment should also preload playlist (if slow)
 - search indexing still broken
-- UnhandledPromiseRejection: This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason "#<ErrorEvent>". keeps happening in backup

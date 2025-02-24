@@ -8,29 +8,33 @@ function formatParams(params) {
     .join("&");
 }
 
-// convert a fetch result to a JSON object with error handling for fetch and json errors
-function convertToJSON(res) {
+const RESPONSE_TYPE_TO_METHOD_NAME = {
+  json: "json",
+  blob: "blob",
+};
+
+// process fetch result using specified method with error handling
+function processResponse(res, responseType = "json") {
   if (!res.ok) {
     throw `API request failed with response status ${res.status} and text: ${res.statusText}`;
   }
-
+  const method = RESPONSE_TYPE_TO_METHOD_NAME[responseType];
   return res
-    .clone() // clone so that the original is still readable for debugging
-    .json() // start converting to JSON object
+    .clone()
+    [method]()
     .catch((error) => {
-      // throw an error containing the text that couldn't be converted to JSON
       return res.text().then((text) => {
-        throw `API request's result could not be converted to a JSON object: \n${text}`;
+        throw `API request's result could not be converted using .${method}: \n${error}\n\ntext:\n${text}`;
       });
     });
 }
 
 // Helper code to make a get request. Default parameter of empty JSON Object for params.
 // Returns a Promise to a JSON Object.
-export function get(endpoint, params = {}) {
+export function get(endpoint, params = {}, responseType = "json") {
   const fullPath = endpoint + "?" + formatParams(params);
   return fetch(fullPath)
-    .then(convertToJSON)
+    .then((res) => processResponse(res, responseType))
     .catch((error) => {
       // give a useful error message
       throw `GET request to ${fullPath} failed with error:\n${error}`;
@@ -45,7 +49,7 @@ export function post(endpoint, params = {}) {
     headers: { "Content-type": "application/json" },
     body: JSON.stringify(params),
   })
-    .then(convertToJSON) // convert result to JSON object
+    .then(processResponse)
     .catch((error) => {
       // give a useful error message
       throw `POST request to ${endpoint} failed with error:\n${error}`;

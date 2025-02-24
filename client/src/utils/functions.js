@@ -116,6 +116,13 @@ export const getAudioHandle = async (osuDirectoryHandle, beatmap) => {
   }
 };
 
+/**
+ * same as above, but just getting the path itself
+ */
+export const getAudioPath = (beatmap) => {
+  return ["Songs", beatmap.folder_name, beatmap.audio_file_name].join("/");
+};
+
 export const scrollIfNeeded = (element, container) => {
   if (element.offsetTop < container.scrollTop) {
     container.scrollTop = element.offsetTop;
