@@ -120,15 +120,17 @@ router.get("/osu/songs", async (req, res) => {
   if (!req.query.path) {
     res.status(400).send({ msg: "please provide a filepath" });
   } else {
-    const collectionsPath = path.join(process.env.SERVER_OSU_DIR, req.query.path);
-    fs.readFile(collectionsPath, (error, data) => {
-      if (error) {
-        res.status(500).send({ msg: error.message });
-      } else {
-        res.setHeader("content-type", "audio/mpeg");
-        res.status(200).send(data);
-      }
-    });
+    try {
+      const songPath = path.join(process.env.SERVER_OSU_DIR, req.query.path);
+      const stats = await fsPromises.stat(songPath); // Get file stats asynchronously
+      const fileSize = stats.size; // File size in bytes
+      const data = await fsPromises.readFile(songPath); // Read the file asynchronously
+      res.setHeader("content-type", "audio/mpeg");
+      res.setHeader("Content-Length", fileSize);
+      res.status(200).send(data);
+    } catch (error) {
+      res.status(500).send({ msg: error.message });
+    }
   }
 });
 
