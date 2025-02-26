@@ -86,42 +86,61 @@ const Player = (props) => {
   const poolSearchResults = useRef();
 
   const [playlist, setPlaylist] = useStatePromise([]);
-  const [selectedLoc, dispatchSelectedLoc] = useReducerPromise(
-    (state, action) => {
-      // action type:
-      // {seek: {direction}} OR
-      // {set: {list?, index?}}
-      let { list, index, playlistIndex } = { ...state, ...action.set };
-      if (action.seek) {
-        if (state.list === Lists.PLAYLIST) {
-          index =
-            action.seek.direction === Direction.NEXT
-              ? state.index + 1
-              : Math.max(state.index - 1, 0);
-        } else {
-          index = seekToResult(state.index, action.seek.direction, poolSearchResults.current);
-        }
+  const selectedLocReducerHandler = (state, action) => {
+    // action type:
+    // {seek: {direction}} OR
+    // {set: {list?, index?}}
+    let { list, index, playlistIndex } = { ...state, ...action.set };
+    if (action.seek) {
+      if (state.list === Lists.PLAYLIST) {
+        index =
+          action.seek.direction === Direction.NEXT ? state.index + 1 : Math.max(state.index - 1, 0);
+      } else {
+        index = seekToResult(state.index, action.seek.direction, poolSearchResults.current);
       }
-      if (list === Lists.PLAYLIST) playlistIndex = index;
-      const newState = { list, index, playlistIndex };
-      if (Object.keys(newState).every((k) => Object.is(state[k], newState[k]))) {
-        return state; // bail out of state update
-      }
-      return newState;
-    },
-    {
-      list: Lists.PLAYLIST, // active list
-      index: 0, // index on current list
-      playlistIndex: 0, // index on playlist, for when pool is playing
-      nowPlaying: undefined, // computed field
     }
-  );
+    if (list === Lists.PLAYLIST) playlistIndex = index;
+    const newState = { list, index, playlistIndex };
+    if (Object.keys(newState).every((k) => Object.is(state[k], newState[k]))) {
+      return state; // bail out of state update
+    }
+    return newState;
+  };
+  const [selectedLoc, dispatchSelectedLoc] = useReducerPromise(selectedLocReducerHandler, {
+    list: Lists.PLAYLIST, // active list
+    index: 0, // index on current list
+    playlistIndex: 0, // index on playlist, for when pool is playing
+    nowPlaying: undefined, // computed field
+  });
   const [poolSearchQuery, setPoolSearchQuery] = useStatePromise("");
   const [filterToQuery, setFilterToQuery] = useStatePromise(false); // whether rng pulls from search results
 
   const audioRef = useRef();
   const poolTableRef = useRef();
   const availableIndices = useRef(new Set(props.pool.keys()));
+
+  // computes extra properties on each song in pool
+  const pool = useMemo(() => {
+    return props.pool.map((song, index) => {
+      const maybeUni = (property) => (useUnicode) => getMaybeUnicode(song, property, useUnicode);
+      return {
+        ...song,
+        index: index,
+        getArtist: maybeUni("artist"),
+        getTitle: maybeUni("title"),
+        getDisplayName: maybeUni("displayName"),
+      };
+    });
+  }, [props.pool]);
+
+  const currentList = selectedLoc.list === Lists.PLAYLIST ? playlist : pool;
+  const nowPlaying = currentList[selectedLoc.index];
+
+  // try to prefetch next song, in ideal case
+  const nextSelectedLoc = selectedLocReducerHandler(selectedLoc, {
+    seek: { direction: Direction.NEXT },
+  });
+  const nextPlaying = currentList[nextSelectedLoc.index]; // list shouldn't change
 
   /**
    * whenever the song changes, this is responsible for playing it
@@ -153,21 +172,6 @@ const Player = (props) => {
       return nowPlaying.removePath.bind(nowPlaying);
     }
   }, [nowPlaying]);
-
-  // computes extra properties on each song in pool
-  const pool = useMemo(() => {
-    return props.pool.map((song, index) => {
-      const maybeUni = (property) => (useUnicode) => getMaybeUnicode(song, property, useUnicode);
-      return {
-        ...song,
-        index: index,
-        getArtist: maybeUni("artist"),
-        getTitle: maybeUni("title"),
-        getDisplayName: maybeUni("displayName"),
-      };
-    });
-  }, [props.pool]);
-  const nowPlaying = (selectedLoc.list === Lists.PLAYLIST ? playlist : pool)[selectedLoc.index];
 
   poolSearchResults.current = useMemo(() => {
     // find current search results to display
@@ -403,6 +407,7 @@ const Player = (props) => {
   return (
     <div className={styles.playerDisplayContainer}>
       <div id="player-container" className={styles.playerContainer}>
+        <link rel="prefetch" as="audio" href={nextPlaying.path} />
         <PlayerAudio
           nowPlaying={nowPlaying}
           playPrev={playPrev}
