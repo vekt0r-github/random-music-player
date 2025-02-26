@@ -5,7 +5,6 @@ import { WithLabel } from "../../utils/components.js";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import MP3Tag from "mp3tag.js";
-import { OsuDBParser } from "osu-db-parser";
 
 import { Table } from "./Table.js";
 
@@ -17,10 +16,12 @@ import {
   getAudioHandle,
   getAudioPath,
   toSafeFilename,
+  toJson,
 } from "../../utils/functions.js";
 
 import styles from "./CollectionLoader.css";
 import { get } from "../../utils/requests.js";
+import { parseCollectionData, parseOsuData } from "../../utils/osudb.js";
 
 const Status = Object.freeze({
   NO_SELECT: "no_select",
@@ -50,27 +51,11 @@ const makeStatusMsg = (status, loadingStatus = undefined, loadFromServer = false
     case Status.LOADED:
       return "collections loaded!";
     case Status.ERROR:
-      return "something went wrong" + loadFromServer
-        ? ""
-        : " (need an osu! installation root directory)";
+      return (
+        "something went wrong" +
+        (loadFromServer ? "" : " (need an osu! installation root directory)")
+      );
   }
-};
-
-/**
- * uses osu-db-parser to parse osu!.db and collection.db
- * from selected folder
- * @param {Object} { osuFile, collectionFile }
- * @returns {Object} { osuData, collectionData }, where
- * osuData = { beatmaps, folder_count, osuver, username }
- * collectionData = { collection, osuver }
- */
-const parseDB = ({ osuFile, collectionFile }) => {
-  const osuBuffer = toBuffer(osuFile);
-  const collectionBuffer = toBuffer(collectionFile);
-  const parser = new OsuDBParser(osuBuffer, collectionBuffer);
-  const osuData = parser.getOsuDBData();
-  const collectionData = parser.getCollectionData();
-  return { osuData, collectionData };
 };
 
 /**
@@ -82,16 +67,6 @@ const getBPM = (timingPoints) => {
   const beatLengthMs = timingPoints[0][0];
   const bpm = Math.round((100 * 60000) / beatLengthMs) / 100;
   return bpm;
-};
-
-/**
- * helper to process unicode return values from OsuDBParser, after 2.0.0 update
- * @param {string} input with possibly-garbled unicode text
- * @returns same string, displayed correctly
- */
-const processOsuDBString = (input) => {
-  if (!input) return input;
-  return decodeURIComponent(escape(input));
 };
 
 const makeURLForClient = async (osuDirectoryHandle, beatmap) => {
@@ -144,9 +119,12 @@ export default class CollectionLoader extends Component {
       const file = await fileHandle.getFile();
       return await this.readFileBinaryWithProgress(file, fn);
     };
-    const osuFile = await getBinaryFile("osu!.db");
-    const collectionFile = await getBinaryFile("collection.db");
-    const { osuData, collectionData } = parseDB({ osuFile, collectionFile });
+    let osuFile = await getBinaryFile("osu!.db");
+    const osuData = parseOsuData(toBuffer(osuFile));
+    osuFile = null;
+    let collectionFile = await getBinaryFile("collection.db");
+    const collectionData = parseCollectionData(toBuffer(collectionFile));
+    collectionFile = null;
     this.setCollectionsFromOsuData(osuData, collectionData);
   };
 
@@ -162,10 +140,11 @@ export default class CollectionLoader extends Component {
   };
 
   /**
-   * args are in the format returned by osu-db-parser
+   * args are in the format returned by osudb.js, or returned by server
    */
   setCollectionsFromOsuData = (osuData, collectionData) => {
     if (!osuData || !osuData.beatmaps || !collectionData || !collectionData.collection) {
+      console.error("missing required info", osuData, collectionData);
       this.setState({
         status: Status.ERROR,
       });
@@ -176,25 +155,20 @@ export default class CollectionLoader extends Component {
     console.log(osuData);
     console.log(collectionData);
 
-    // preprocess all strings, since unicode text may be garbled
-    for (const bm of beatmaps) {
-      for (let key in bm) {
-        if (bm.hasOwnProperty(key) && typeof bm[key] === "string") {
-          bm[key] = processOsuDBString(bm[key]);
-        }
+    if (!this.props.loadFromServer) {
+      // server saves this information
+      const allSongs = new Map();
+      for (const bm of beatmaps) {
+        // just for deduping to pull one hash from each set
+        const key = `${bm.artist_name} - ${bm.song_title} | ${bm.folder_name}/${bm.audio_file_name}`;
+        allSongs.set(key, bm.md5);
       }
+      collections.unshift({
+        name: "<all songs>",
+        beatmapsCount: allSongs.size,
+        beatmapsMd5: [...allSongs.values()],
+      });
     }
-
-    const allSongs = new Map();
-    for (const bm of beatmaps) {
-      const key = `${bm.artist_name} - ${bm.song_title} | ${bm.folder_name}/${bm.audio_file_name}`;
-      allSongs.set(key, bm.md5);
-    }
-    collections.unshift({
-      name: "<all songs>",
-      beatmapsCount: allSongs.size,
-      beatmapsMd5: [...allSongs.values()],
-    });
     this.setState({
       status: Status.LOADED,
       beatmaps: beatmaps,
@@ -314,14 +288,30 @@ export default class CollectionLoader extends Component {
       delete song.path; // for creating .json
     });
     const poolFn = "songs.json";
-    const poolFile = new File([JSON.stringify(pool, null, 4)], poolFn, { type: "text/json" });
+    const poolFile = new File([toJson(pool)], poolFn, { type: "text/json" });
     saveAs(poolFile, poolFn);
   };
 
-  downloadFileList = async () => {
-    // these paths will be relative to the osu! root directory
+  /**
+   * downloads processed version of osu data, for use in server-side mode
+   */
+  downloadRsync = async () => {
+    // osu!.db maps are filtered to selected collection for size
     const beatmaps = this.selectedBeatmaps();
-    const fileList = ["osu!.db", "collection.db", ...beatmaps.map((bm) => getAudioPath(bm))];
+    const osuFn = "osu!.json";
+    const osuFile = new File([toJson({ beatmaps })], osuFn, { type: "text/json" });
+    saveAs(osuFile, osuFn);
+
+    const collection = this.state.collections;
+    const collectionFn = "collection.json";
+    const collectionFile = new File([toJson({ collection })], collectionFn, {
+      type: "text/json",
+    });
+    saveAs(collectionFile, collectionFn);
+
+    // filelist is also filtered to selected collection; server doesn't have space for all
+    // written paths will be relative to the osu! root directory
+    const fileList = [osuFn, collectionFn, ...beatmaps.map((bm) => getAudioPath(bm))];
     const fileListFn = "filelist.txt";
     const fileListFile = new File([fileList.join("\n")], fileListFn, { type: "text/plain" });
     saveAs(fileListFile, fileListFn);
@@ -332,14 +322,22 @@ export default class CollectionLoader extends Component {
     let collectionSelectTable;
     if (this.isLoaded()) {
       const collectionColumns = [
-        (collection, index) => ({
-          text: `${collection.name} (${collection.beatmapsCount})`,
-          onclick: () => {
-            this.setState({
-              selectedCollection: index,
-            });
-          },
-        }),
+        (collection, index) => {
+          let countDisplay = collection.beatmapsCount;
+          if (this.state.beatmaps && this.props.loadFromServer) {
+            const md5Set = new Set(collection.beatmapsMd5);
+            const effectiveCount = this.state.beatmaps.filter((bm) => md5Set.has(bm.md5)).length;
+            countDisplay = `${effectiveCount}/${collection.beatmapsCount}`;
+          }
+          return {
+            text: `${collection.name} (${countDisplay})`,
+            onclick: () => {
+              this.setState({
+                selectedCollection: index,
+              });
+            },
+          };
+        },
       ];
       collectionSelectTable = (
         <Table
@@ -400,24 +398,26 @@ export default class CollectionLoader extends Component {
                   </div>
                   <button
                     type="button"
+                    aria-describedby="dl-metadata"
                     className={styles.downloadButton}
                     onClick={this.downloadMetadata}
                   >
                     dl data file
                   </button>
-                  <div role="tooltip" id="dl-rsync-desc" className={styles.tooltip}>
+                  <div role="tooltip" id="dl-metadata" className={styles.tooltip}>
                     this is the songs.json file that s-ul and default modes rely on
                   </div>
                   <button
                     type="button"
                     aria-describedby="dl-rsync-desc"
                     className={styles.downloadButton}
-                    onClick={this.downloadFileList}
+                    onClick={this.downloadRsync}
                   >
-                    dl filelist.txt
+                    dl for rsync
                   </button>
                   <div role="tooltip" id="dl-rsync-desc" className={styles.tooltip}>
-                    this is for rsync to upload for the server-side collection mode
+                    for the server-side collection mode; downloads root-level files for rsync to
+                    upload
                   </div>
                 </div>
               </>

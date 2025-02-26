@@ -10,6 +10,9 @@ export const randomChoice = (x) => x[random(0, x.length)];
 // for negative numbers
 export const mod = (m, n) => ((m % n) + n) % n;
 
+// default settings for downloading json from fe
+export const toJson = (obj) => JSON.stringify(obj, null, 4);
+
 /**
  * splits a string by the dot before file extension
  * @param {String} fn

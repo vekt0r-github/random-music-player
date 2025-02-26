@@ -10,9 +10,9 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
 const request = require("request");
-const { fetchOsuData, fetchCollectionData } = require("./osudb");
 var path = require("path");
 var fs = require("fs");
+var fsPromises = require("fs/promises");
 require("dotenv").config();
 
 // api endpoints: all these paths will be prefixed with "/api/"
@@ -103,9 +103,13 @@ router.post("/songs/sul", async (req, res) => {
 
 router.get("/osu/metadata", async (req, res) => {
   try {
-    const osuData = await fetchOsuData();
-    const collectionData = await fetchCollectionData();
-    res.setHeader("content-type", "audio/mpeg");
+    const osuPath = path.join(process.env.SERVER_OSU_DIR, "osu!.json");
+    const osuData = JSON.parse(await fsPromises.readFile(osuPath, { encoding: "utf-8" }));
+    const collectionPath = path.join(process.env.SERVER_OSU_DIR, "collection.json");
+    const collectionData = JSON.parse(
+      await fsPromises.readFile(collectionPath, { encoding: "utf-8" })
+    );
+    res.setHeader("content-type", "application/json");
     res.status(200).send({ osuData, collectionData });
   } catch (error) {
     res.status(500).send({ msg: error.message });
