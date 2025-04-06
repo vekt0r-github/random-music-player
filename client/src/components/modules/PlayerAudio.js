@@ -78,9 +78,14 @@ const PlayerAudio = (props) => {
         ref={audioRef}
         id="audio"
         onError={async (e) => {
-          console.log(e.currentTarget.error);
-          setCurrentError(`an error occurred for ${displayName}: ${e.currentTarget.error.message}`);
-          playNext();
+          console.error(e.currentTarget.error);
+          if (e.currentTarget.error?.code !== 2) {
+            // 2 = network error; let it buffer
+            setCurrentError(
+              `an error occurred for ${displayName}: ${e.currentTarget.error.message}`
+            );
+            playNext();
+          }
         }}
         onEnded={() => autoplayNext()}
         type="audio/mpeg"

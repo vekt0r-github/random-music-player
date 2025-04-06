@@ -20,7 +20,7 @@ import {
 } from "../../utils/functions.js";
 
 import styles from "./CollectionLoader.css";
-import { get } from "../../utils/requests.js";
+import { get, formatParams } from "../../utils/requests.js";
 import { parseCollectionData, parseOsuData } from "../../utils/osudb.js";
 
 const Status = Object.freeze({
@@ -77,7 +77,7 @@ const makeURLForClient = async (osuDirectoryHandle, beatmap) => {
 };
 
 const makeURLForServer = (beatmap) => {
-  return `/api/osu/songs?path=${getAudioPath(beatmap)}`;
+  return `/api/osu/songs?${formatParams({ path: getAudioPath(beatmap) })}`;
 };
 
 export default class CollectionLoader extends Component {

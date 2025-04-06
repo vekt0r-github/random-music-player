@@ -141,6 +141,17 @@ const Player = (props) => {
     seek: { direction: Direction.NEXT },
   });
   const nextPlaying = currentList[nextSelectedLoc.index]; // list shouldn't change
+  useEffect(async () => {
+    if (!nextPlaying) return;
+    const audio = new Audio();
+    if (!nextPlaying.path) {
+      // warning: may leak a bit of memory
+      await nextPlaying.addPath();
+    }
+    audio.src = nextPlaying?.path;
+    audio.preload = "auto";
+    audio.load();
+  }, [nextPlaying]);
 
   /**
    * whenever the song changes, this is responsible for playing it
@@ -158,6 +169,8 @@ const Player = (props) => {
       }
       if (nowPlaying) {
         audioRef.current.src = nowPlaying.path;
+        audioRef.current.preload = "auto";
+        audioRef.current.load();
         audioRef.current.currentTime = 0;
         audioRef.current.play();
       }
@@ -407,7 +420,6 @@ const Player = (props) => {
   return (
     <div className={styles.playerDisplayContainer}>
       <div id="player-container" className={styles.playerContainer}>
-        <link rel="prefetch" as="audio" href={nextPlaying.path} />
         <PlayerAudio
           nowPlaying={nowPlaying}
           playPrev={playPrev}

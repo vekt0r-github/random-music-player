@@ -31,7 +31,6 @@ kete
 
 - bug: song errors out in the middle of playback
   - investigate why only server-osu and not default mode
-- preloading next song
 - drag + move songs around
 - pool list sorting options
 - reimplement scrollIfNeeded for pool box
