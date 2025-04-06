@@ -125,7 +125,9 @@ router.get("/osu/songs", async (req, res) => {
       const stats = await fsPromises.stat(songPath); // Get file stats asynchronously
       const fileSize = stats.size; // File size in bytes
       const data = await fsPromises.readFile(songPath); // Read the file asynchronously
-      res.setHeader("content-type", "audio/mpeg");
+      // ogg and mp3 only file types supported for now
+      const contentType = songPath.endsWith(".ogg") ? "audio/ogg" : "audio/mpeg";
+      res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", fileSize);
       res.status(200).send(data);
     } catch (error) {
